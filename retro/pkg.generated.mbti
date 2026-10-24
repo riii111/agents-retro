@@ -6,9 +6,7 @@ import {
 }
 
 // Values
-pub fn claude_messages(Array[String], project~ : String, session~ : String) -> Array[RawMessage]
-
-pub fn codex_messages(Array[String], session~ : String) -> Array[RawMessage]
+pub fn claude_message(StringView, project~ : String, session~ : String) -> RawMessage?
 
 pub fn collect(Array[RawMessage], since~ : String) -> (Array[Message], Int32)
 
@@ -47,6 +45,14 @@ pub fn utc_isoformat(Int64) -> String
 // Errors
 
 // Types and methods
+pub struct CodexSession {
+  session : String
+  mut source : String?
+  mut cwd : String
+}
+pub fn CodexSession::new(String) -> Self
+pub fn CodexSession::read_line(Self, StringView) -> RawMessage?
+
 pub(all) struct Message {
   id : Int32
   ts : String

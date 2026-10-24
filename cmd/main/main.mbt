@@ -70,21 +70,25 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
       continue
     }
     let project = basename(dirname(path))
-    rows.append(
-      @retro.claude_messages(
-        read_candidate_lines(path),
-        project~,
-        session=stem(basename(path)),
-      ),
-    )
+    let session = stem(basename(path))
+    each_candidate_line(path, line => {
+      if @retro.claude_message(line, project~, session~) is Some(row) {
+        rows.push(row)
+      }
+    })
   }
   for path in jsonl_files("\{home}/.codex/sessions", depth=4) {
     if modified_before(path, since_ms) {
       continue
     }
-    let session = stem(basename(path))
-    let session = @retro.take_last_chars(session, 36)
-    rows.append(@retro.codex_messages(read_candidate_lines(path), session~))
+    let reader = @retro.CodexSession::new(
+      @retro.take_last_chars(stem(basename(path)), 36),
+    )
+    each_candidate_line(path, line => {
+      if reader.read_line(line) is Some(row) {
+        rows.push(row)
+      }
+    })
   }
   rows
 }
@@ -175,14 +179,13 @@ async fn modified_before(path : String, ms : Int64) -> Bool {
 }
 
 ///|
-/// Reads the file in chunks and decodes only candidate lines, so neither the whole file nor its UTF-16 copy stays in memory.
-async fn read_candidate_lines(path : String) -> Array[String] {
+/// Hands candidate lines to `handle` one at a time while reading the file in chunks, so at most one decoded line stays in memory.
+async fn each_candidate_line(path : String, handle : (String) -> Unit) -> Unit {
   let file = @fs.open(path, mode=ReadOnly)
   defer file.close()
-  let lines = []
   let keep = (line : BytesView) => {
     if @retro.is_candidate_line(line) {
-      lines.push(@utf8.decode_lossy(line))
+      handle(@utf8.decode_lossy(line))
     }
   }
   let partial = Buffer()
@@ -206,7 +209,6 @@ async fn read_candidate_lines(path : String) -> Array[String] {
   if !partial.is_empty() {
     keep(partial.to_bytes())
   }
-  lines
 }
 
 ///|

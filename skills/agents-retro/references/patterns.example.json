@@ -1,0 +1,8 @@
+{
+  "Review comment follow-ups": "CodeRabbit|review comment|address (the )?(comments?|feedback)",
+  "Merge conflicts": "[Cc]onflict",
+  "Nudges after a stall": "^(continue|go on|keep going)|still (working|there)[?]",
+  "Asking for shorter answers": "too long|shorter|more concise|be brief",
+  "Asking for links": "[Ll]ink (to|for) (the )?(PR|issue)",
+  "Posting restrictions": "(don't|do not) (post|comment|reply)"
+}

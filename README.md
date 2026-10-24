@@ -13,8 +13,11 @@ git clone https://github.com/riii111/agents-retro
 cd agents-retro
 nix develop          # or install the moon toolchain yourself
 moon build --target native --release
+mkdir -p ~/.local/bin
 install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/agents-retro
 ```
+
+If `agents-retro --help` is not found, add `~/.local/bin` to your `PATH`.
 
 ## Usage
 

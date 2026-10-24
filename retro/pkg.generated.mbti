@@ -14,15 +14,31 @@ pub fn collect(Array[RawMessage], since~ : String) -> (Array[Message], Int32)
 
 pub fn count_by_role(Array[Message]) -> Array[(String, Int32)]
 
-pub fn count_patterns(Array[Message], Array[(String, @string.Regex)]) -> Array[PatternCount]
+pub fn count_patterns(Array[PatternHits]) -> Array[PatternCount]
+
+pub fn example_tsv_line(String, Message) -> String
+
+pub fn format_summary(Metrics, PreviousMetrics?, examples_path~ : String, unmatched_paths~ : Array[String], messages_path~ : String) -> String
+
+pub fn match_patterns(Array[Message], Array[(String, @string.Regex)]) -> Array[PatternHits]
 
 pub fn message_tsv_line(Message) -> String
 
 pub fn parse_patterns(String) -> Array[(String, @string.Regex)] raise
 
+pub fn parse_previous_metrics(String, date~ : String) -> PreviousMetrics? raise
+
+pub fn pattern_examples(Array[PatternHits]) -> Array[(String, Message)]
+
 pub fn session_count(Array[Message]) -> Int32
 
+pub fn take_chars(StringView, Int32) -> String
+
 pub fn take_last_chars(StringView, Int32) -> String
+
+pub fn unmatched_chunks(Array[Message], Array[PatternHits]) -> Array[Array[Message]]
+
+pub fn unmatched_tsv_line(Message) -> String
 
 pub fn utc_isoformat(Int64) -> String
 
@@ -39,10 +55,31 @@ pub(all) struct Message {
   text : String
 }
 
+pub(all) struct Metrics {
+  since : String
+  messages : Int32
+  sessions : Int32
+  delegated : Int32
+  by_role : Array[(String, Int32)]
+  unmatched : Int32
+  patterns : Array[PatternCount]
+}
+pub fn Metrics::to_json(Self) -> String
+
 pub(all) struct PatternCount {
   name : String
   messages : Int32
   sessions : Int32
+}
+
+pub(all) struct PatternHits {
+  name : String
+  messages : Array[Message]
+}
+
+pub(all) struct PreviousMetrics {
+  date : String
+  patterns : Map[String, PatternCount]
 }
 
 pub(all) struct RawMessage {

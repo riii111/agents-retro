@@ -12,21 +12,57 @@ fn msg(id : Int32, text : String, session~ : String) -> @retro.Message {
 }
 
 ///|
-test "count_patterns counts messages and distinct sessions" {
+fn review_hits(
+  messages : Array[@retro.Message],
+) -> Array[@retro.PatternHits] raise {
   let source =
     #|{"review": "CR|CodeRabbit", "conflict": "コンフリクト"}
-  let patterns = @retro.parse_patterns(source)
-  let messages = [
+  @retro.match_patterns(messages, @retro.parse_patterns(source))
+}
+
+///|
+test "count_patterns counts messages and distinct sessions" {
+  let hits = review_hits([
     msg(1, "CRきた", session="a"),
     msg(2, "CodeRabbitの指摘", session="a"),
     msg(3, "CR", session="b"),
     msg(4, "続けて", session="c"),
-  ]
-  let counts = @retro.count_patterns(messages, patterns)
+  ])
   assert_eq(
-    counts.map((c : @retro.PatternCount) => (c.name, c.messages, c.sessions)),
+    @retro.count_patterns(hits).map((c : @retro.PatternCount) => {
+      (c.name, c.messages, c.sessions)
+    }),
     [("review", 3, 2), ("conflict", 0, 0)],
   )
+}
+
+///|
+test "pattern_examples takes up to three messages from distinct sessions" {
+  let hits = review_hits([
+    msg(1, "CR 1", session="a"),
+    msg(2, "CR 2", session="a"),
+    msg(3, "CR 3", session="b"),
+    msg(4, "CR 4", session="c"),
+    msg(5, "CR 5", session="d"),
+  ])
+  assert_eq(@retro.pattern_examples(hits).map(e => (e.0, e.1.id)), [
+    ("review", 1),
+    ("review", 3),
+    ("review", 4),
+  ])
+}
+
+///|
+test "unmatched_chunks keeps unmatched messages in order, 100 per chunk" {
+  let messages = Array::makei(250, i => {
+    let id = i + 1
+    msg(id, if id % 5 == 0 { "CR" } else { "other" }, session="s")
+  })
+  let chunks = @retro.unmatched_chunks(messages, review_hits(messages))
+  assert_eq(chunks.map(c => c.length()), [100, 100])
+  assert_eq(chunks[0][0].id, 1)
+  assert_eq(chunks[0][4].id, 6)
+  assert_eq(@retro.unmatched_chunks([], review_hits([])).length(), 0)
 }
 
 ///|
@@ -50,4 +86,21 @@ test "message_tsv_line" {
     @retro.message_tsv_line(msg(7, "  a\n\tb\u{3000}c  ", session="s")),
     "7\t2026-10-20T01:23\tcodex\tuser\ts\t/w\ta b c",
   )
+}
+
+///|
+test "previews keep short text whole and cut long text to head and tail" {
+  assert_eq(
+    @retro.example_tsv_line("review", msg(7, " a\nb ", session="s")),
+    "review\t7\ts\ta b",
+  )
+  let head = "あ".repeat(140)
+  let tail = "い".repeat(60)
+  let long = msg(8, head + "う".repeat(100) + tail, session="s")
+  assert_eq(
+    @retro.unmatched_tsv_line(long),
+    "8\t\{head} …[300字]… \{tail}",
+  )
+  let limit = msg(9, "え".repeat(200), session="s")
+  assert_eq(@retro.unmatched_tsv_line(limit), "9\t\{"え".repeat(200)}")
 }

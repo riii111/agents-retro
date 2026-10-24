@@ -48,6 +48,18 @@ The output directory gets these files, named by date:
 
 Messages that agents sent to each other and text the apps inserted are left out.
 
+## Permission analysis
+
+Find recurring Claude Code permission prompts, auto mode denials, and Bash sandbox failures:
+
+```sh
+agents-retro permissions --days 7 --limit 15
+```
+
+Session logs default to `~/.claude/projects`; permission events default to `~/.local/state/claude/permission-events.jsonl` and require a `log-permission-event` hook. Override them with `--projects <directory>` and `--events <file>`. The report prints counts by command, denial cause, working directory, blocked path, and host. It includes session counts for permission commands and does not quote conversation text or tool output. Codex approval events are outside its scope.
+
+[skills/permission-analyze](skills/permission-analyze/SKILL.md) guides an agent through interpreting the report and proposing settings improvements.
+
 ## Patterns
 
 The patterns file maps a category name to a regular expression. Start from [the example](skills/agents-retro/references/patterns.example.json) and add the phrases you notice yourself repeating.

@@ -1,8 +1,15 @@
 ///|
 async fn main {
+  guard @env.get_env_var("HOME") is Some(home) else { fail("HOME is not set") }
+  let args = @env.args()
+  if args.get(1) == Some("permissions") {
+    permissions_main(args[2:])
+    return
+  }
   let matches = @argparse.Command(
     "agents-retro",
     about="Collect the messages you typed to Claude Code and Codex",
+    subcommands=[permission_command(home)],
     options=[
       OptionArg("days", long="days", default_values=["7"]),
       OptionArg(
@@ -17,7 +24,6 @@ async fn main {
   let days = @string.parse_int64(matches.values["days"][0])
   let patterns_path = matches.values["patterns"][0]
   let out_dir = matches.values["out-dir"][0]
-  guard @env.get_env_var("HOME") is Some(home) else { fail("HOME is not set") }
 
   let now_ms = @env.now().reinterpret_as_int64()
   let since_ms = now_ms - days * 86_400_000L

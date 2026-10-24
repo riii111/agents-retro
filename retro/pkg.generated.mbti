@@ -85,6 +85,16 @@ pub(all) struct PatternHits {
   messages : Array[Message]
 }
 
+type PermissionCounter
+
+pub struct PermissionReport {
+  // private fields
+}
+pub fn PermissionReport::format(Self, days~ : Int64, records~ : Int32, limit~ : Int32) -> String
+pub fn PermissionReport::new(home~ : String) -> Self
+pub fn PermissionReport::scan_events(Self, String, since_ms~ : Int64) -> Unit
+pub fn PermissionReport::scan_session(Self, String) -> Unit
+
 pub(all) struct PreviousMetrics {
   date : String
   patterns : Map[String, PatternCount]

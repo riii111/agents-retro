@@ -1,0 +1,59 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/agents-retro/retro"
+
+import {
+  "moonbitlang/core/string",
+}
+
+// Values
+pub fn claude_messages(String, project~ : String, session~ : String) -> Array[RawMessage]
+
+pub fn codex_messages(String, session~ : String) -> Array[RawMessage]
+
+pub fn collect(Array[RawMessage], since~ : String) -> (Array[Message], Int32)
+
+pub fn count_by_role(Array[Message]) -> Array[(String, Int32)]
+
+pub fn count_patterns(Array[Message], Array[(String, @string.Regex)]) -> Array[PatternCount]
+
+pub fn message_tsv_line(Message) -> String
+
+pub fn parse_patterns(String) -> Array[(String, @string.Regex)] raise
+
+pub fn session_count(Array[Message]) -> Int32
+
+pub fn take_last_chars(StringView, Int32) -> String
+
+pub fn utc_isoformat(Int64) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct Message {
+  id : Int32
+  ts : String
+  app : String
+  role : String
+  session : String
+  cwd : String
+  text : String
+}
+
+pub(all) struct PatternCount {
+  name : String
+  messages : Int32
+  sessions : Int32
+}
+
+pub(all) struct RawMessage {
+  ts : String
+  app : String
+  role : String
+  session : String
+  cwd : String
+  raw : String
+}
+
+// Type aliases
+
+// Traits

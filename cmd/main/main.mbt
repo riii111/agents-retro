@@ -70,21 +70,25 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
       continue
     }
     let project = basename(dirname(path))
-    rows.append(
-      @retro.claude_messages(
-        read_text(path),
-        project~,
-        session=stem(basename(path)),
-      ),
-    )
+    let session = stem(basename(path))
+    each_candidate_line(path, line => {
+      if @retro.claude_message(line, project~, session~) is Some(row) {
+        rows.push(row)
+      }
+    })
   }
   for path in jsonl_files("\{home}/.codex/sessions", depth=4) {
     if modified_before(path, since_ms) {
       continue
     }
-    let session = stem(basename(path))
-    let session = @retro.take_last_chars(session, 36)
-    rows.append(@retro.codex_messages(read_text(path), session~))
+    let reader = @retro.CodexSession::new(
+      @retro.take_last_chars(stem(basename(path)), 36),
+    )
+    each_candidate_line(path, line => {
+      if reader.read_line(line) is Some(row) {
+        rows.push(row)
+      }
+    })
   }
   rows
 }
@@ -172,6 +176,39 @@ async fn jsonl_files(root : String, depth~ : Int32) -> Array[String] {
 async fn modified_before(path : String, ms : Int64) -> Bool {
   let (sec, nsec) = @fs.mtime(path)
   sec * 1000L + (nsec / 1_000_000).to_int64() < ms
+}
+
+///|
+/// Hands candidate lines to `handle` one at a time while reading the file in chunks, so at most one decoded line stays in memory.
+async fn each_candidate_line(path : String, handle : (String) -> Unit) -> Unit {
+  let file = @fs.open(path, mode=ReadOnly)
+  defer file.close()
+  let keep = (line : BytesView) => {
+    if @retro.is_candidate_line(line) {
+      handle(@utf8.decode_lossy(line))
+    }
+  }
+  let partial = Buffer()
+  while file.read_some(max_len=1 << 20) is Some(chunk) {
+    let mut start = 0
+    for i in 0..<chunk.length() {
+      if chunk[i] != b'\n' {
+        continue
+      }
+      if partial.is_empty() {
+        keep(chunk[start:i])
+      } else {
+        partial.write_bytesview(chunk[start:i])
+        keep(partial.to_bytes())
+        partial.reset()
+      }
+      start = i + 1
+    }
+    partial.write_bytesview(chunk[start:])
+  }
+  if !partial.is_empty() {
+    keep(partial.to_bytes())
+  }
 }
 
 ///|

@@ -15,94 +15,108 @@ let codex_human_sources : Array[String] = [
 
 ///|
 /// The project directory name encodes the original working directory.
-pub fn claude_messages(
-  log : String,
+pub fn claude_message(
+  line : StringView,
   project~ : String,
   session~ : String,
-) -> Array[RawMessage] {
-  let role = if project.contains("-codex-worktrees-") {
-    "worker"
-  } else {
-    "main"
+) -> RawMessage? {
+  guard parse_object(line) is Some(d) else { return None }
+  if !(d.get("type") is Some(String("user"))) ||
+    d.get("isMeta") is Some(True) ||
+    d.get("isSidechain") is Some(True) {
+    return None
   }
-  let rows = []
-  for line in log.split("\n") {
-    guard parse_object(line) is Some(d) else { continue }
-    if !(d.get("type") is Some(String("user"))) ||
-      d.get("isMeta") is Some(True) ||
-      d.get("isSidechain") is Some(True) {
-      continue
-    }
-    let content = match d.get("message") {
-      Some(Object(m)) => claude_content(m.get("content"))
-      _ => None
-    }
-    guard content is Some(raw) && !is_blank(raw) else { continue }
-    rows.push({
-      ts: string_field(d, "timestamp"),
-      app: "claude",
-      role,
-      session,
-      cwd: string_field(d, "cwd"),
-      raw,
-    })
+  let content = match d.get("message") {
+    Some(Object(m)) => claude_content(m.get("content"))
+    _ => None
   }
-  rows
+  guard content is Some(raw) && !is_blank(raw) else { return None }
+  Some({
+    ts: string_field(d, "timestamp"),
+    app: "claude",
+    role: if project.contains("-codex-worktrees-") {
+      "worker"
+    } else {
+      "main"
+    },
+    session,
+    cwd: string_field(d, "cwd"),
+    raw,
+  })
+}
+
+///|
+/// Reads a Codex log line by line, carrying the thread source and working directory from the last session metadata line.
+pub struct CodexSession {
+  session : String
+  mut source : String?
+  mut cwd : String
+}
+
+///|
+pub fn CodexSession::new(session : String) -> CodexSession {
+  { session, source: None, cwd: "", }
 }
 
 ///|
 /// Includes user, automation, and agent-created threads; labels the last as workers.
-pub fn codex_messages(log : String, session~ : String) -> Array[RawMessage] {
-  let rows = []
-  let mut source : String? = None
-  let mut cwd = ""
-  for line in log.split("\n") {
-    guard parse_object(line) is Some(d) else { continue }
-    let payload = match d.get("payload") {
-      Some(Object(p)) => p
-      _ => Map([])
-    }
-    let kind = string_field(d, "type")
-    if kind == "session_meta" {
-      source = match payload.get("thread_source") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      cwd = string_field(payload, "cwd")
-      continue
-    }
-    guard source is Some(src) && codex_human_sources.contains(src) else {
-      continue
-    }
-    if kind != "response_item" || string_field(payload, "role") != "user" {
-      continue
-    }
-    let texts = []
-    if payload.get("content") is Some(Array(items)) {
-      for item in items {
-        if item is Object(c) {
-          texts.push(string_field(c, "text"))
-        }
-      }
-    }
-    let raw = texts.join(" ")
-    if is_blank(raw) {
-      continue
-    }
-    rows.push({
-      ts: string_field(d, "timestamp"),
-      app: "codex",
-      role: if src == "agent_created_thread" {
-        "worker"
-      } else {
-        src
-      },
-      session,
-      cwd,
-      raw,
-    })
+pub fn CodexSession::read_line(
+  self : CodexSession,
+  line : StringView,
+) -> RawMessage? {
+  guard parse_object(line) is Some(d) else { return None }
+  let payload = match d.get("payload") {
+    Some(Object(p)) => p
+    _ => Map([])
   }
-  rows
+  let kind = string_field(d, "type")
+  if kind == "session_meta" {
+    self.source = match payload.get("thread_source") {
+      Some(String(s)) => Some(s)
+      _ => None
+    }
+    self.cwd = string_field(payload, "cwd")
+    return None
+  }
+  guard self.source is Some(src) && codex_human_sources.contains(src) else {
+    return None
+  }
+  if kind != "response_item" || string_field(payload, "role") != "user" {
+    return None
+  }
+  let texts = []
+  if payload.get("content") is Some(Array(items)) {
+    for item in items {
+      if item is Object(c) {
+        texts.push(string_field(c, "text"))
+      }
+    }
+  }
+  let raw = texts.join(" ")
+  if is_blank(raw) {
+    return None
+  }
+  Some({
+    ts: string_field(d, "timestamp"),
+    app: "codex",
+    role: if src == "agent_created_thread" {
+      "worker"
+    } else {
+      src
+    },
+    session: self.session,
+    cwd: self.cwd,
+    raw,
+  })
+}
+
+///|
+/// Narrows lines before JSON parsing to save memory and time, keeping every line that could hold a user turn or Codex session metadata.
+/// Lines with `\u` escapes stay because an escaped value such as `"\u0075ser"` parses as `"user"`.
+pub fn is_candidate_line(line : BytesView) -> Bool {
+  line.find(b"\"user\"") is Some(_) ||
+  line.find(b"\"session_meta\"") is Some(_) ||
+  line.find(b"\\u") is Some(_)
 }
 
 ///|

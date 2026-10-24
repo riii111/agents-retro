@@ -14,43 +14,6 @@ let codex_human_sources : Array[String] = [
 ]
 
 ///|
-fn string_field(obj : Map[String, Json], key : String) -> String {
-  match obj.get(key) {
-    Some(String(s)) => s
-    _ => ""
-  }
-}
-
-///|
-fn parse_object(line : StringView) -> Map[String, Json]? {
-  let json = @json.parse(line) catch { _ => return None }
-  guard json is Object(obj) else { return None }
-  Some(obj)
-}
-
-///|
-fn is_blank(text : String) -> Bool {
-  text.iter().all(is_space)
-}
-
-///|
-fn claude_content(content : Json?) -> String? {
-  match content {
-    Some(String(s)) => Some(s)
-    Some(Array(items)) => {
-      let texts = []
-      for item in items {
-        if item is Object(c) && c.get("type") is Some(String("text")) {
-          texts.push(string_field(c, "text"))
-        }
-      }
-      Some(texts.join(" "))
-    }
-    _ => None
-  }
-}
-
-///|
 /// The project directory name encodes the original working directory.
 pub fn claude_messages(
   log : String,
@@ -140,4 +103,41 @@ pub fn codex_messages(log : String, session~ : String) -> Array[RawMessage] {
     })
   }
   rows
+}
+
+///|
+fn parse_object(line : StringView) -> Map[String, Json]? {
+  let json = @json.parse(line) catch { _ => return None }
+  guard json is Object(obj) else { return None }
+  Some(obj)
+}
+
+///|
+fn string_field(obj : Map[String, Json], key : String) -> String {
+  match obj.get(key) {
+    Some(String(s)) => s
+    _ => ""
+  }
+}
+
+///|
+fn is_blank(text : String) -> Bool {
+  text.iter().all(is_space)
+}
+
+///|
+fn claude_content(content : Json?) -> String? {
+  match content {
+    Some(String(s)) => Some(s)
+    Some(Array(items)) => {
+      let texts = []
+      for item in items {
+        if item is Object(c) && c.get("type") is Some(String("text")) {
+          texts.push(string_field(c, "text"))
+        }
+      }
+      Some(texts.join(" "))
+    }
+    _ => None
+  }
 }

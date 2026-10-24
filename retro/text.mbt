@@ -1,4 +1,12 @@
 ///|
+pub fn take_last_chars(text : StringView, n : Int32) -> String {
+  let chars : Array[Char] = text.iter().collect()
+  String::from_array(
+    chars[if chars.length() > n { chars.length() - n } else { 0 }:],
+  )
+}
+
+///|
 /// Matches Python's whitespace set, including full-width spaces.
 fn is_space(c : Char) -> Bool {
   match c {
@@ -47,12 +55,4 @@ fn flatten(text : StringView) -> String {
 ///|
 fn take_chars(text : StringView, n : Int32) -> String {
   String::from_iter(text.iter().take(n))
-}
-
-///|
-pub fn take_last_chars(text : StringView, n : Int32) -> String {
-  let chars : Array[Char] = text.iter().collect()
-  String::from_array(
-    chars[if chars.length() > n { chars.length() - n } else { 0 }:],
-  )
 }

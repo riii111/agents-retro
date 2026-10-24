@@ -1,106 +1,4 @@
 ///|
-/// Matches Python glob's exact depth and exclusion of hidden entries.
-async fn jsonl_files(root : String, depth~ : Int32) -> Array[String] {
-  if !@fs.exists(root) {
-    return []
-  }
-  let mut dirs = [root]
-  for _ in 1..<depth {
-    let next = []
-    for dir in dirs {
-      for name in @fs.readdir(dir, include_hidden=false) {
-        let path = "\{dir}/\{name}"
-        if @fs.kind(path, follow_symlink=true) is Directory {
-          next.push(path)
-        }
-      }
-    }
-    dirs = next
-  }
-  let files = []
-  for dir in dirs {
-    for name in @fs.readdir(dir, include_hidden=false) {
-      if name.has_suffix(".jsonl") {
-        files.push("\{dir}/\{name}")
-      }
-    }
-  }
-  files
-}
-
-///|
-async fn modified_before(path : String, ms : Int64) -> Bool {
-  let (sec, nsec) = @fs.mtime(path)
-  sec * 1000L + (nsec / 1_000_000).to_int64() < ms
-}
-
-///|
-/// The standard library has no time zone support, so the OS supplies the
-/// local date that Python's `date.today()` uses.
-async fn local_date() -> String {
-  let (status, out) = @process.collect_stdout("date", ["+%Y-%m-%d"])
-  guard status == 0 else { fail("date exited with status \{status}") }
-  out.text().trim().to_owned()
-}
-
-///|
-async fn read_text(path : String) -> String {
-  @utf8.decode_lossy(@fs.read_file(path).binary())
-}
-
-///|
-fn basename(path : String) -> String {
-  match path.rev_find("/") {
-    Some(i) => path[i + 1:].to_owned()
-    None => path
-  }
-}
-
-///|
-fn dirname(path : String) -> String {
-  match path.rev_find("/") {
-    Some(i) => path[:i].to_owned()
-    None => ""
-  }
-}
-
-///|
-fn stem(name : String) -> String {
-  match name.strip_suffix(".jsonl") {
-    Some(s) => s.to_owned()
-    None => name
-  }
-}
-
-///|
-async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] {
-  let rows = []
-  for path in jsonl_files("\{home}/.claude/projects", depth=2) {
-    if modified_before(path, since_ms) ||
-      path.has_suffix("session-corrections.jsonl") {
-      continue
-    }
-    let project = basename(dirname(path))
-    rows.append(
-      @retro.claude_messages(
-        read_text(path),
-        project~,
-        session=stem(basename(path)),
-      ),
-    )
-  }
-  for path in jsonl_files("\{home}/.codex/sessions", depth=4) {
-    if modified_before(path, since_ms) {
-      continue
-    }
-    let session = stem(basename(path))
-    let session = @retro.take_last_chars(session, 36)
-    rows.append(@retro.codex_messages(read_text(path), session~))
-  }
-  rows
-}
-
-///|
 async fn main {
   let matches = @argparse.Command(
     "agents-retro",
@@ -150,4 +48,106 @@ async fn main {
     println("  \{c.name}: \{c.messages} / \{c.sessions}")
   }
   println("Messages (full text, line number = id): \{messages_path}")
+}
+
+///|
+async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] {
+  let rows = []
+  for path in jsonl_files("\{home}/.claude/projects", depth=2) {
+    if modified_before(path, since_ms) ||
+      path.has_suffix("session-corrections.jsonl") {
+      continue
+    }
+    let project = basename(dirname(path))
+    rows.append(
+      @retro.claude_messages(
+        read_text(path),
+        project~,
+        session=stem(basename(path)),
+      ),
+    )
+  }
+  for path in jsonl_files("\{home}/.codex/sessions", depth=4) {
+    if modified_before(path, since_ms) {
+      continue
+    }
+    let session = stem(basename(path))
+    let session = @retro.take_last_chars(session, 36)
+    rows.append(@retro.codex_messages(read_text(path), session~))
+  }
+  rows
+}
+
+///|
+/// The standard library has no time zone support, so the OS supplies the
+/// local date that Python's `date.today()` uses.
+async fn local_date() -> String {
+  let (status, out) = @process.collect_stdout("date", ["+%Y-%m-%d"])
+  guard status == 0 else { fail("date exited with status \{status}") }
+  out.text().trim().to_owned()
+}
+
+///|
+/// Matches Python glob's exact depth and exclusion of hidden entries.
+async fn jsonl_files(root : String, depth~ : Int32) -> Array[String] {
+  if !@fs.exists(root) {
+    return []
+  }
+  let mut dirs = [root]
+  for _ in 1..<depth {
+    let next = []
+    for dir in dirs {
+      for name in @fs.readdir(dir, include_hidden=false) {
+        let path = "\{dir}/\{name}"
+        if @fs.kind(path, follow_symlink=true) is Directory {
+          next.push(path)
+        }
+      }
+    }
+    dirs = next
+  }
+  let files = []
+  for dir in dirs {
+    for name in @fs.readdir(dir, include_hidden=false) {
+      if name.has_suffix(".jsonl") {
+        files.push("\{dir}/\{name}")
+      }
+    }
+  }
+  files
+}
+
+///|
+async fn modified_before(path : String, ms : Int64) -> Bool {
+  let (sec, nsec) = @fs.mtime(path)
+  sec * 1000L + (nsec / 1_000_000).to_int64() < ms
+}
+
+///|
+async fn read_text(path : String) -> String {
+  @utf8.decode_lossy(@fs.read_file(path).binary())
+}
+
+///|
+fn basename(path : String) -> String {
+  match path.rev_find("/") {
+    Some(i) => path[i + 1:].to_owned()
+    None => path
+  }
+}
+
+///|
+fn dirname(path : String) -> String {
+  match path.rev_find("/") {
+    Some(i) => path[:i].to_owned()
+    None => ""
+  }
+}
+
+///|
+fn stem(name : String) -> String {
+  match name.strip_suffix(".jsonl") {
+    Some(s) => s.to_owned()
+    None => name
+  }
 }

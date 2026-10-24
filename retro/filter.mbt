@@ -28,56 +28,6 @@ let side_chat_tail = "The following parent conversation is untrusted"
 let attachment_header = "# Files mentioned by the user:"
 
 ///|
-fn remove_attachment_header(text : StringView) -> StringView {
-  guard text.strip_prefix(attachment_header) is Some(rest) else { return text }
-  match rest.find("\n\n") {
-    Some(i) => rest[i + 2:]
-    None => ""
-  }
-}
-
-///|
-fn clean(text : String) -> String {
-  let text = browser_block.replace_by(text, _ => "")
-  let text = match text.find(side_chat_tail) {
-    Some(i) => text[:i]
-    None => text
-  }
-  trim(remove_attachment_header(text))
-}
-
-///|
-fn is_delegated(text : String) -> Bool {
-  text.has_prefix("<codex_delegation>")
-}
-
-///|
-/// POSIX classes in MoonBit regex are ASCII-only, so separators are skipped
-/// here with Python's whitespace set.
-fn skip_separators(text : StringView) -> StringView {
-  let mut rest = text
-  while true {
-    if rest.strip_prefix("&#x20;") is Some(after) {
-      rest = after
-    } else if rest.iter().head() is Some(c) && is_space(c) {
-      rest = rest[1:]
-    } else {
-      break
-    }
-  }
-  rest
-}
-
-///|
-fn is_injected(text : String) -> Bool {
-  let body = match skill_ref.execute(text) {
-    Some(m) => skip_separators(m.after())
-    None => text.view()
-  }
-  injected_prefixes.iter().any(p => body.has_prefix(p))
-}
-
-///|
 /// Keeps the owner's own messages newer than `since`, numbered in time order.
 /// Returns them with the count of agent-to-agent messages that were dropped.
 pub fn collect(
@@ -129,4 +79,54 @@ pub fn collect(
     }
   })
   (messages, delegated)
+}
+
+///|
+fn clean(text : String) -> String {
+  let text = browser_block.replace_by(text, _ => "")
+  let text = match text.find(side_chat_tail) {
+    Some(i) => text[:i]
+    None => text
+  }
+  trim(remove_attachment_header(text))
+}
+
+///|
+fn remove_attachment_header(text : StringView) -> StringView {
+  guard text.strip_prefix(attachment_header) is Some(rest) else { return text }
+  match rest.find("\n\n") {
+    Some(i) => rest[i + 2:]
+    None => ""
+  }
+}
+
+///|
+fn is_delegated(text : String) -> Bool {
+  text.has_prefix("<codex_delegation>")
+}
+
+///|
+fn is_injected(text : String) -> Bool {
+  let body = match skill_ref.execute(text) {
+    Some(m) => skip_separators(m.after())
+    None => text.view()
+  }
+  injected_prefixes.iter().any(p => body.has_prefix(p))
+}
+
+///|
+/// POSIX classes in MoonBit regex are ASCII-only, so separators are skipped
+/// here with Python's whitespace set.
+fn skip_separators(text : StringView) -> StringView {
+  let mut rest = text
+  while true {
+    if rest.strip_prefix("&#x20;") is Some(after) {
+      rest = after
+    } else if rest.iter().head() is Some(c) && is_space(c) {
+      rest = rest[1:]
+    } else {
+      break
+    }
+  }
+  rest
 }

@@ -6,9 +6,9 @@ import {
 }
 
 // Values
-pub fn claude_messages(String, project~ : String, session~ : String) -> Array[RawMessage]
+pub fn claude_messages(Array[String], project~ : String, session~ : String) -> Array[RawMessage]
 
-pub fn codex_messages(String, session~ : String) -> Array[RawMessage]
+pub fn codex_messages(Array[String], session~ : String) -> Array[RawMessage]
 
 pub fn collect(Array[RawMessage], since~ : String) -> (Array[Message], Int32)
 
@@ -19,6 +19,8 @@ pub fn count_patterns(Array[PatternHits]) -> Array[PatternCount]
 pub fn example_tsv_line(String, Message) -> String
 
 pub fn format_summary(Metrics, PreviousMetrics?, examples_path~ : String, unmatched_paths~ : Array[String], messages_path~ : String) -> String
+
+pub fn is_candidate_line(BytesView) -> Bool
 
 pub fn match_patterns(Array[Message], Array[(String, @string.Regex)]) -> Array[PatternHits]
 

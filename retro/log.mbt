@@ -16,7 +16,7 @@ let codex_human_sources : Array[String] = [
 ///|
 /// The project directory name encodes the original working directory.
 pub fn claude_messages(
-  log : String,
+  lines : Array[String],
   project~ : String,
   session~ : String,
 ) -> Array[RawMessage] {
@@ -26,7 +26,7 @@ pub fn claude_messages(
     "main"
   }
   let rows = []
-  for line in log.split("\n") {
+  for line in lines {
     guard parse_object(line) is Some(d) else { continue }
     if !(d.get("type") is Some(String("user"))) ||
       d.get("isMeta") is Some(True) ||
@@ -52,11 +52,14 @@ pub fn claude_messages(
 
 ///|
 /// Includes user, automation, and agent-created threads; labels the last as workers.
-pub fn codex_messages(log : String, session~ : String) -> Array[RawMessage] {
+pub fn codex_messages(
+  lines : Array[String],
+  session~ : String,
+) -> Array[RawMessage] {
   let rows = []
   let mut source : String? = None
   let mut cwd = ""
-  for line in log.split("\n") {
+  for line in lines {
     guard parse_object(line) is Some(d) else { continue }
     let payload = match d.get("payload") {
       Some(Object(p)) => p
@@ -103,6 +106,12 @@ pub fn codex_messages(log : String, session~ : String) -> Array[RawMessage] {
     })
   }
   rows
+}
+
+///|
+/// Narrows lines before JSON parsing to save memory and time, keeping every line that could hold a user turn or Codex session metadata.
+pub fn is_candidate_line(line : BytesView) -> Bool {
+  line.find(b"\"user\"") is Some(_) || line.find(b"\"session_meta\"") is Some(_)
 }
 
 ///|

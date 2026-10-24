@@ -72,7 +72,7 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
     let project = basename(dirname(path))
     rows.append(
       @retro.claude_messages(
-        read_text(path),
+        read_candidate_lines(path),
         project~,
         session=stem(basename(path)),
       ),
@@ -84,7 +84,7 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
     }
     let session = stem(basename(path))
     let session = @retro.take_last_chars(session, 36)
-    rows.append(@retro.codex_messages(read_text(path), session~))
+    rows.append(@retro.codex_messages(read_candidate_lines(path), session~))
   }
   rows
 }
@@ -172,6 +172,41 @@ async fn jsonl_files(root : String, depth~ : Int32) -> Array[String] {
 async fn modified_before(path : String, ms : Int64) -> Bool {
   let (sec, nsec) = @fs.mtime(path)
   sec * 1000L + (nsec / 1_000_000).to_int64() < ms
+}
+
+///|
+/// Reads the file in chunks and decodes only candidate lines, so neither the whole file nor its UTF-16 copy stays in memory.
+async fn read_candidate_lines(path : String) -> Array[String] {
+  let file = @fs.open(path, mode=ReadOnly)
+  defer file.close()
+  let lines = []
+  let keep = (line : BytesView) => {
+    if @retro.is_candidate_line(line) {
+      lines.push(@utf8.decode_lossy(line))
+    }
+  }
+  let partial = Buffer()
+  while file.read_some(max_len=1 << 20) is Some(chunk) {
+    let mut start = 0
+    for i in 0..<chunk.length() {
+      if chunk[i] != b'\n' {
+        continue
+      }
+      if partial.is_empty() {
+        keep(chunk[start:i])
+      } else {
+        partial.write_bytesview(chunk[start:i])
+        keep(partial.to_bytes())
+        partial.reset()
+      }
+      start = i + 1
+    }
+    partial.write_bytesview(chunk[start:])
+  }
+  if !partial.is_empty() {
+    keep(partial.to_bytes())
+  }
+  lines
 }
 
 ///|

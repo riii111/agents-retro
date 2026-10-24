@@ -60,6 +60,8 @@ test "is_candidate_line keeps user turns and Codex session metadata" {
       ("{\"type\": \"user\"}", true),
       ("{\"type\":\"session_meta\",\"payload\":{}}", true),
       ("{\"type\":\"response_item\",\"payload\":{\"role\":\"user\"}}", true),
+      ("{\"type\":\"\\u0075ser\"}", true),
+      ("{\"type\":\"session\\u005fmeta\"}", true),
       ("{\"type\":\"assistant\",\"message\":{\"content\":\"the user\"}}", false),
       (
         "{\"type\":\"response_item\",\"payload\":{\"role\":\"assistant\"}}", false,

@@ -110,8 +110,11 @@ pub fn codex_messages(
 
 ///|
 /// Narrows lines before JSON parsing to save memory and time, keeping every line that could hold a user turn or Codex session metadata.
+/// Lines with `\u` escapes stay because an escaped value such as `"\u0075ser"` parses as `"user"`.
 pub fn is_candidate_line(line : BytesView) -> Bool {
-  line.find(b"\"user\"") is Some(_) || line.find(b"\"session_meta\"") is Some(_)
+  line.find(b"\"user\"") is Some(_) ||
+  line.find(b"\"session_meta\"") is Some(_) ||
+  line.find(b"\\u") is Some(_)
 }
 
 ///|

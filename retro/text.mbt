@@ -1,4 +1,9 @@
 ///|
+pub fn take_chars(text : StringView, n : Int32) -> String {
+  String::from_iter(text.iter().take(n))
+}
+
+///|
 pub fn take_last_chars(text : StringView, n : Int32) -> String {
   let chars : Array[Char] = text.iter().collect()
   String::from_array(
@@ -50,9 +55,4 @@ fn flatten(text : StringView) -> String {
     words.push(word.to_string())
   }
   words.join(" ")
-}
-
-///|
-fn take_chars(text : StringView, n : Int32) -> String {
-  String::from_iter(text.iter().take(n))
 }

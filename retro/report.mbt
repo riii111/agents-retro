@@ -6,6 +6,25 @@ pub(all) struct PatternCount {
 }
 
 ///|
+pub(all) struct PatternHits {
+  name : String
+  messages : Array[Message]
+}
+
+///|
+/// Files other than `messages.tsv` carry only a head and tail of each message so that reading them costs a bounded amount of context.
+let preview_head = 140
+
+///|
+let preview_tail = 60
+
+///|
+let examples_per_pattern = 3
+
+///|
+let unmatched_chunk_rows = 100
+
+///|
 /// Preserves category order from the JSON object.
 pub fn parse_patterns(source : String) -> Array[(String, @string.Regex)] raise {
   guard @json.parse(source) is Object(obj) else {
@@ -22,15 +41,69 @@ pub fn parse_patterns(source : String) -> Array[(String, @string.Regex)] raise {
 }
 
 ///|
-pub fn count_patterns(
+pub fn match_patterns(
   messages : Array[Message],
   patterns : Array[(String, @string.Regex)],
-) -> Array[PatternCount] {
+) -> Array[PatternHits] {
   patterns.map(entry => {
     let (name, regex) = entry
-    let hits = messages.filter(m => regex.execute(m.text) is Some(_))
-    { name, messages: hits.length(), sessions: session_count(hits), }
+    { name, messages: messages.filter(m => regex.execute(m.text) is Some(_)), }
   })
+}
+
+///|
+pub fn count_patterns(hits : Array[PatternHits]) -> Array[PatternCount] {
+  hits.map(h => {
+    name: h.name,
+    messages: h.messages.length(),
+    sessions: session_count(h.messages),
+  })
+}
+
+///|
+/// Takes examples from distinct sessions so one long conversation cannot dominate.
+pub fn pattern_examples(hits : Array[PatternHits]) -> Array[(String, Message)] {
+  let examples = []
+  for h in hits {
+    let seen : Set[(String, String)] = Set([])
+    for m in h.messages {
+      if seen.length() == examples_per_pattern {
+        break
+      }
+      if seen.contains(session_key(m)) {
+        continue
+      }
+      seen.add(session_key(m))
+      examples.push((h.name, m))
+    }
+  }
+  examples
+}
+
+///|
+pub fn unmatched_chunks(
+  messages : Array[Message],
+  hits : Array[PatternHits],
+) -> Array[Array[Message]] {
+  let matched : Set[Int32] = Set([])
+  for h in hits {
+    for m in h.messages {
+      matched.add(m.id)
+    }
+  }
+  let unmatched = messages.filter(m => !matched.contains(m.id))
+  let chunks = []
+  for start = 0
+      start < unmatched.length()
+      start = start + unmatched_chunk_rows {
+    let end = if start + unmatched_chunk_rows < unmatched.length() {
+      start + unmatched_chunk_rows
+    } else {
+      unmatched.length()
+    }
+    chunks.push(unmatched[start:end].to_owned())
+  }
+  chunks
 }
 
 ///|
@@ -62,6 +135,26 @@ pub fn message_tsv_line(m : Message) -> String {
     m.cwd,
     flatten(m.text),
   ].join("\t")
+}
+
+///|
+pub fn example_tsv_line(name : String, m : Message) -> String {
+  [name, m.id.to_string(), m.session, preview(m.text)].join("\t")
+}
+
+///|
+pub fn unmatched_tsv_line(m : Message) -> String {
+  [m.id.to_string(), preview(m.text)].join("\t")
+}
+
+///|
+fn preview(text : String) -> String {
+  let flat = flatten(text)
+  let length = flat.char_length()
+  if length <= preview_head + preview_tail {
+    return flat
+  }
+  "\{take_chars(flat, preview_head)} …[\{length}字]… \{take_last_chars(flat, preview_tail)}"
 }
 
 ///|

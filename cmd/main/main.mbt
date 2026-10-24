@@ -23,31 +23,42 @@ async fn main {
   let since_ms = now_ms - days * 86_400_000L
   let today = local_date()
   let patterns = @retro.parse_patterns(read_text(patterns_path))
-  let (messages, delegated) = @retro.collect(
-    read_logs(home, since_ms),
-    since=@retro.utc_isoformat(since_ms),
-  )
+  let since = @retro.utc_isoformat(since_ms)
+  let (messages, delegated) = @retro.collect(read_logs(home, since_ms), since~)
   @fs.mkdir(out_dir, recursive=true, allow_exist=true)
 
   let messages_path = "\{out_dir}/\{today}-messages.tsv"
-  let tsv = StringBuilder()
-  for m in messages {
-    tsv.write_string(@retro.message_tsv_line(m))
-    tsv.write_char('\n')
+  write_lines(messages_path, messages.map(@retro.message_tsv_line))
+
+  let hits = @retro.match_patterns(messages, patterns)
+  let examples_path = "\{out_dir}/\{today}-examples.tsv"
+  write_lines(
+    examples_path,
+    @retro.pattern_examples(hits).map(e => @retro.example_tsv_line(e.0, e.1)),
+  )
+  let chunks = @retro.unmatched_chunks(messages, hits)
+  let unmatched_paths = write_unmatched_chunks(out_dir, today, chunks)
+
+  let metrics : @retro.Metrics = {
+    since,
+    messages: messages.length(),
+    sessions: @retro.session_count(messages),
+    delegated,
+    by_role: @retro.count_by_role(messages),
+    unmatched: chunks.fold(init=0, (n, chunk) => n + chunk.length()),
+    patterns: @retro.count_patterns(hits),
   }
-  @fs.write_file(messages_path, tsv.to_string())
+  @fs.write_file("\{out_dir}/\{today}-metrics.json", metrics.to_json())
 
   println(
-    "Owner messages: \{messages.length()} in \{@retro.session_count(messages)} sessions (agent-to-agent messages excluded: \{delegated})",
+    @retro.format_summary(
+      metrics,
+      previous_metrics(out_dir, today),
+      examples_path~,
+      unmatched_paths~,
+      messages_path~,
+    ),
   )
-  for entry in @retro.count_by_role(messages) {
-    println("  \{entry.0}: \{entry.1}")
-  }
-  println("\nPatterns (messages / sessions)")
-  for c in @retro.count_patterns(messages, patterns) {
-    println("  \{c.name}: \{c.messages} / \{c.sessions}")
-  }
-  println("Messages (full text, line number = id): \{messages_path}")
 }
 
 ///|
@@ -76,6 +87,47 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
     rows.append(@retro.codex_messages(read_text(path), session~))
   }
   rows
+}
+
+///|
+/// Removes the chunks of an earlier run on the same day, which may have left more files than this run writes.
+async fn write_unmatched_chunks(
+  out_dir : String,
+  today : String,
+  chunks : Array[Array[@retro.Message]],
+) -> Array[String] {
+  let prefix = "\{today}-unmatched-"
+  for name in @fs.readdir(out_dir, include_hidden=false) {
+    if name.has_prefix(prefix) && name.has_suffix(".tsv") {
+      @fs.remove("\{out_dir}/\{name}")
+    }
+  }
+  let paths = []
+  for i, chunk in chunks {
+    let number = if i < 9 { "0\{i + 1}" } else { "\{i + 1}" }
+    let path = "\{out_dir}/\{prefix}\{number}.tsv"
+    write_lines(path, chunk.map(@retro.unmatched_tsv_line))
+    paths.push(path)
+  }
+  paths
+}
+
+///|
+async fn previous_metrics(
+  out_dir : String,
+  today : String,
+) -> @retro.PreviousMetrics? {
+  let names = @fs.readdir(out_dir, include_hidden=false).filter(name => {
+    name.has_suffix("-metrics.json") &&
+    !name.has_suffix("\{today}-metrics.json")
+  })
+  guard !names.is_empty() else { return None }
+  names.sort_by((a, b) => a.lexical_compare(b))
+  let latest = names[names.length() - 1]
+  @retro.parse_previous_metrics(
+    read_text("\{out_dir}/\{latest}"),
+    date=@retro.take_chars(latest, 10),
+  )
 }
 
 ///|
@@ -125,6 +177,16 @@ async fn modified_before(path : String, ms : Int64) -> Bool {
 ///|
 async fn read_text(path : String) -> String {
   @utf8.decode_lossy(@fs.read_file(path).binary())
+}
+
+///|
+async fn write_lines(path : String, lines : Array[String]) -> Unit {
+  let out = StringBuilder()
+  for line in lines {
+    out.write_string(line)
+    out.write_char('\n')
+  }
+  @fs.write_file(path, out.to_string())
 }
 
 ///|

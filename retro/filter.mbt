@@ -57,7 +57,7 @@ pub fn collect(
     seen.add(key)
     kept.push((kept.length(), row, text))
   }
-  // Ties keep input order, as Python's stable sort does.
+  // `sort_by` is not stable, so the input index keeps ties in Python's order.
   kept.sort_by((a, b) => {
     let by_ts = a.1.ts.lexical_compare(b.1.ts)
     if by_ts != 0 {
@@ -115,8 +115,7 @@ fn is_injected(text : String) -> Bool {
 }
 
 ///|
-/// POSIX classes in MoonBit regex are ASCII-only, so separators are skipped
-/// here with Python's whitespace set.
+/// MoonBit regex classes match only ASCII spaces, so full-width separators are skipped in code.
 fn skip_separators(text : StringView) -> StringView {
   let mut rest = text
   while true {

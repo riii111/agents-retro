@@ -79,8 +79,7 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
 }
 
 ///|
-/// The standard library has no time zone support, so the OS supplies the
-/// local date that Python's `date.today()` uses.
+/// The standard library has no time zone support, so the OS supplies Python's `date.today()` value.
 async fn local_date() -> String {
   let (status, out) = @process.collect_stdout("date", ["+%Y-%m-%d"])
   guard status == 0 else { fail("date exited with status \{status}") }

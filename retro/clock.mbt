@@ -2,8 +2,7 @@
 let ms_per_day : Int64 = 86_400_000L
 
 ///|
-/// Same shape as Python's `datetime.isoformat()` for an aware UTC datetime,
-/// so that it compares lexicographically with log timestamps the same way.
+/// Matches Python's UTC `isoformat()` so string comparison with log timestamps gives the same result.
 pub fn utc_isoformat(ms : Int64) -> String {
   let day_ms = ms - floor_div(ms, ms_per_day) * ms_per_day
   let h = day_ms / 3_600_000L

@@ -2,9 +2,6 @@
 let whitespace_chars : String = regex_whitespace()
 
 ///|
-let rule : @string.Regex = regex("\\[([^\\]]+)\\]")
-
-///|
 let segments : @string.Regex = regex("&&|;|\n")
 
 ///|
@@ -159,49 +156,4 @@ fn shell_syntax(command : String) -> String {
   }
 
   out.to_string()
-}
-
-///|
-fn denial_cause(reason : String) -> String {
-  if reason.is_empty() {
-    "unknown"
-  } else if reason.has_prefix("Classifier unavailable") {
-    "classifier unavailable (not a settings issue)"
-  } else if reason.has_prefix("Auto mode could not evaluate") {
-    "no verdict (not a settings issue)"
-  } else if rule.execute(reason) is Some(m) && m.group(1) is Some(rule) {
-    "rule: \{rule}"
-  } else {
-    "other"
-  }
-}
-
-///|
-fn replace_home(path : String, home : String) -> String {
-  if path == home {
-    "~"
-  } else if path.strip_prefix(home + "/") is Some(rest) {
-    "~/\{rest}"
-  } else {
-    path
-  }
-}
-
-///|
-fn path_prefix(path : String, home : String) -> String {
-  if path == home {
-    return "~"
-  }
-
-  if path.find("/.git/") is Some(i) {
-    return replace_home(path[:i].to_owned() + "/.git", home)
-  }
-
-  if path.strip_prefix(home + "/") is Some(rest) {
-    let parts : Array[StringView] = rest.split("/").take(3).collect()
-    return "~/" + parts.join("/")
-  }
-
-  let parts : Array[StringView] = path.split("/").take(4).collect()
-  parts.join("/")
 }

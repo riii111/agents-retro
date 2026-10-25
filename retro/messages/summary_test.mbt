@@ -30,6 +30,7 @@ test "format_summary without a previous run" {
     #|Examples: o/e.tsv
     #|Unmatched: o/u-01.tsv
     #|Messages (full text, line number = id): o/m.tsv
+
   assert_eq(
     @messages.format_summary(
       summary_metrics(),
@@ -48,6 +49,7 @@ test "format_summary compares with the previous run" {
     date: "2026-10-17",
     patterns: { "review": { name: "review", messages: 5, sessions: 3, } },
   }
+
   let summary = @messages.format_summary(
     summary_metrics(),
     Some(previous),
@@ -55,6 +57,7 @@ test "format_summary compares with the previous run" {
     unmatched_paths=[],
     messages_path="o/m.tsv",
   )
+
   assert_true(
     summary.contains("Patterns (messages / sessions)  vs 2026-10-17\n"),
   )

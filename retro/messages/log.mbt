@@ -26,11 +26,13 @@ pub fn claude_message(
     d.get("isSidechain") is Some(True) {
     return None
   }
+
   let content = match d.get("message") {
     Some(Object(m)) => claude_content(m.get("content"))
     _ => None
   }
   guard content is Some(raw) && !is_blank(raw) else { return None }
+
   Some({
     ts: @records.string_field(d, "timestamp"),
     app: "claude",
@@ -69,6 +71,7 @@ pub fn CodexSession::read_line(
     Some(Object(p)) => p
     _ => Map([])
   }
+
   let kind = @records.string_field(d, "type")
   if kind == "session_meta" {
     self.source = match payload.get("thread_source") {
@@ -78,12 +81,14 @@ pub fn CodexSession::read_line(
     self.cwd = @records.string_field(payload, "cwd")
     return None
   }
+
   guard self.source is Some(src) && codex_human_sources.contains(src) else {
     return None
   }
   if kind != "response_item" || @records.string_field(payload, "role") != "user" {
     return None
   }
+
   let texts = []
   if payload.get("content") is Some(Array(items)) {
     for item in items {
@@ -92,10 +97,12 @@ pub fn CodexSession::read_line(
       }
     }
   }
+
   let raw = texts.join(" ")
   if is_blank(raw) {
     return None
   }
+
   Some({
     ts: @records.string_field(d, "timestamp"),
     app: "codex",
@@ -135,6 +142,7 @@ fn claude_content(content : Json?) -> String? {
           texts.push(@records.string_field(c, "text"))
         }
       }
+
       Some(texts.join(" "))
     }
     _ => None

@@ -28,6 +28,7 @@ test "count_patterns counts messages and distinct sessions" {
     msg(3, "CR", session="b"),
     msg(4, "続けて", session="c"),
   ])
+
   assert_eq(
     @messages.count_patterns(hits).map((c : @messages.PatternCount) => {
       (c.name, c.messages, c.sessions)
@@ -58,7 +59,9 @@ test "unmatched_chunks keeps unmatched messages in order, 100 per chunk" {
     let id = i + 1
     msg(id, if id % 5 == 0 { "CR" } else { "other" }, session="s")
   })
+
   let chunks = @messages.unmatched_chunks(messages, review_hits(messages))
+
   assert_eq(chunks.map(c => c.length()), [100, 100])
   assert_eq(chunks[0][0].id, 1)
   assert_eq(chunks[0][4].id, 6)
@@ -73,6 +76,7 @@ test "count_by_role sorts keys lexicographically" {
     { ..msg(3, "c", session="s"), app: "claude", role: "main", },
     { ..msg(4, "d", session="s"), app: "claude", role: "main", },
   ]
+
   assert_eq(@messages.count_by_role(messages), [
     ("claude/main", 2),
     ("claude/worker", 1),
@@ -94,13 +98,17 @@ test "previews keep short text whole and cut long text to head and tail" {
     @messages.example_tsv_line("review", msg(7, " a\nb ", session="s")),
     "review\t7\ts\ta b",
   )
+
   let head = "あ".repeat(140)
   let tail = "い".repeat(60)
   let long = msg(8, head + "う".repeat(100) + tail, session="s")
+
   assert_eq(
     @messages.unmatched_tsv_line(long),
     "8\t\{head} …[300字]… \{tail}",
   )
+
   let limit = msg(9, "え".repeat(200), session="s")
+
   assert_eq(@messages.unmatched_tsv_line(limit), "9\t\{"え".repeat(200)}")
 }

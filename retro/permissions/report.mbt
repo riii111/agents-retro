@@ -83,15 +83,18 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
     message.get("content") is Some(Array(content)) else {
     return
   }
+
   let report = self.report
   for item in content {
     guard item is Object(item) else { continue }
+
     if @records.string_field(item, "type") == "tool_use" &&
       @records.string_field(item, "name") == "Bash" {
       guard item.get("id") is Some(String(id)) &&
         item.get("input") is Some(Object(input)) else {
         continue
       }
+
       let call : Call = {
         head: command_head(@records.string_field(input, "command")),
         unsandboxed: input.get("dangerouslyDisableSandbox") is Some(True),
@@ -106,20 +109,24 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
         !call.unsandboxed else {
         continue
       }
+
       let output = output_text(item.get("content"))
       for m in network.find(output) {
         if m.group(1) is Some(host) {
           report.hosts.add(host.to_owned())
         }
       }
+
       if write_errors.execute(output) is None {
         continue
       }
+
       report.failed.add(call.head)
       for line in output.split("\n") {
         if write_errors.execute(line) is None {
           continue
         }
+
         for m in quoted_path.find(line) {
           for i in 1..<4 {
             if m.group(i) is Some(path) {
@@ -144,16 +151,19 @@ pub fn Report::read_event(
     stamp >= since_ms else {
     return
   }
+
   let event = @records.string_field(record, "event")
   let counts = match event {
     "PermissionRequest" => self.prompts
     "PermissionDenied" => self.denials
     _ => return
   }
+
   let cwd = @records.string_field(record, "cwd")
   counts.places.add(
     replace_home(if cwd.is_empty() { "?" } else { cwd }, self.home),
   )
+
   let (shape, head) = if @records.string_field(record, "tool") == "Bash" {
     let command = @records.string_field(record, "command")
     let shape = command_shape(command)
@@ -170,7 +180,9 @@ pub fn Report::read_event(
     let tool = if tool.is_empty() { "unknown" } else { tool }
     ("tool: \{tool}", "tool: \{tool}")
   }
+
   counts.shapes.add(shape)
+
   let head = if event == "PermissionDenied" {
     let cause = denial_cause(@records.string_field(record, "reason"))
     self.causes.add(cause)
@@ -178,6 +190,7 @@ pub fn Report::read_event(
   } else {
     head
   }
+
   if !counts.sessions.contains(head) {
     counts.sessions[head] = Set([])
   }
@@ -196,13 +209,16 @@ pub fn Report::format(
   out.write_string(
     "# Sandbox report: last \{days} days, \{records} session records\n\n",
   )
+
   self.prompts.sections(out, "Permission prompts", "by command", limit)
   self.denials.sections(out, "Auto mode denials", "by cause and command", limit)
   self.causes.section(out, "Auto mode denials by cause", limit)
+
   self.reruns.section(out, "Commands rerun outside the sandbox", limit)
   self.failed.section(out, "Sandboxed commands that failed to write", limit)
   self.writes.section(out, "Paths the sandbox refused to write", limit)
   self.hosts.section(out, "Hosts the sandbox refused", limit)
+
   out.to_string()
 }
 
@@ -253,6 +269,7 @@ fn Counter::section(
   if self.counts.is_empty() {
     out.write_string("(none)\n")
   }
+
   let counts : Array[(String, Int32)] = self.counts.iter().collect()
   let entries = counts.mapi((i, entry) => (entry.0, entry.1, i))
   entries.sort_by((a, b) => {
@@ -262,10 +279,12 @@ fn Counter::section(
       b.1.compare(a.1)
     }
   })
+
   for i, (key, count, _) in entries {
     if i >= limit {
       break
     }
+
     let count = count.to_string()
     let padding = if count.length() < 5 {
       " ".repeat(5 - count.length())
@@ -274,6 +293,7 @@ fn Counter::section(
     }
     out.write_string("\{padding}\{count}  \{format_key(key)}\n")
   }
+
   out.write_char('\n')
 }
 

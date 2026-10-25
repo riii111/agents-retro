@@ -2,6 +2,7 @@
 pub fn parse_object(line : StringView) -> Map[String, Json]? {
   let json = @json.parse(line) catch { _ => return None }
   guard json is Object(obj) else { return None }
+
   Some(obj)
 }
 

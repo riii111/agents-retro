@@ -37,18 +37,22 @@ pub fn collect(
   let seen : Set[(String, String)] = Set([])
   let kept : Array[(Int32, RawMessage, String)] = []
   let mut delegated = 0
+
   for row in raws {
     if row.ts.lexical_compare(since) < 0 {
       continue
     }
+
     if is_delegated(row.raw) {
       delegated += 1
       continue
     }
+
     let text = clean(row.raw)
     if text.is_empty() || is_injected(text) {
       continue
     }
+
     // Forked Claude sessions copy earlier turns into new files.
     let key = (take_chars(row.ts, 19), take_chars(text, 120))
     if seen.contains(key) {
@@ -57,6 +61,7 @@ pub fn collect(
     seen.add(key)
     kept.push((kept.length(), row, text))
   }
+
   // `sort_by` is not stable, so the input index keeps ties in Python's order.
   kept.sort_by((a, b) => {
     let by_ts = a.1.ts.lexical_compare(b.1.ts)
@@ -66,6 +71,7 @@ pub fn collect(
       a.0.compare(b.0)
     }
   })
+
   let messages = kept.mapi((i, entry) => {
     let (_, row, text) = entry
     {
@@ -78,6 +84,7 @@ pub fn collect(
       text,
     }
   })
+
   (messages, delegated)
 }
 
@@ -88,6 +95,7 @@ fn clean(text : String) -> String {
     Some(i) => text[:i]
     None => text
   }
+
   trim(remove_attachment_header(text))
 }
 
@@ -111,6 +119,7 @@ fn is_injected(text : String) -> Bool {
     Some(m) => skip_separators(m.after())
     None => text.view()
   }
+
   injected_prefixes.iter().any(p => body.has_prefix(p))
 }
 
@@ -127,5 +136,6 @@ fn skip_separators(text : StringView) -> StringView {
       break
     }
   }
+
   rest
 }

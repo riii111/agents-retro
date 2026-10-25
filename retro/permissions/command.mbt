@@ -36,6 +36,7 @@ fn regex_whitespace() -> String {
       out.write_char(c)
     }
   }
+
   out.to_string()
 }
 
@@ -53,9 +54,11 @@ fn words(text : StringView) -> Array[String] {
       word.write_char(c)
     }
   }
+
   if !word.is_empty() {
     words.push(word.to_string())
   }
+
   words
 }
 
@@ -74,9 +77,11 @@ fn command_head(command : String) -> String {
         break
       }
     }
+
     if start >= words.length() || words[start] == "cd" {
       continue
     }
+
     let head = words[start]
     if ["git", "gh", "bun", "bunx", "npm", "npx", "cargo", "go", "nix", "uv"].contains(
         head,
@@ -93,8 +98,10 @@ fn command_head(command : String) -> String {
         i += 1
       }
     }
+
     return head
   }
+
   ""
 }
 
@@ -128,6 +135,7 @@ fn shell_syntax(command : String) -> String {
       i += 2
       continue
     }
+
     if quote is Some(q) {
       if c == q {
         quote = None
@@ -146,8 +154,10 @@ fn shell_syntax(command : String) -> String {
     } else {
       out.write_char(c)
     }
+
     i += 1
   }
+
   out.to_string()
 }
 
@@ -182,13 +192,16 @@ fn path_prefix(path : String, home : String) -> String {
   if path == home {
     return "~"
   }
+
   if path.find("/.git/") is Some(i) {
     return replace_home(path[:i].to_owned() + "/.git", home)
   }
+
   if path.strip_prefix(home + "/") is Some(rest) {
     let parts : Array[StringView] = rest.split("/").take(3).collect()
     return "~/" + parts.join("/")
   }
+
   let parts : Array[StringView] = path.split("/").take(4).collect()
   parts.join("/")
 }

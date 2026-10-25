@@ -38,6 +38,7 @@ test "to_json matches Python's json.dump with indent=1" {
     #|  }
     #| }
     #|}
+
   assert_eq(
     sample_metrics().to_json(),
     expected.trim_end(chars="\n").to_owned(),
@@ -51,6 +52,7 @@ test "to_json writes empty objects inline" {
     by_role: [],
     patterns: [],
   }
+
   assert_true(empty.to_json().contains(" \"by_role\": {},\n"))
   assert_true(empty.to_json().has_suffix(" \"patterns\": {}\n}"))
 }
@@ -61,8 +63,10 @@ test "parse_previous_metrics reads its own output" {
     sample_metrics().to_json(),
     date="2026-10-17",
   )
+
   guard previous is Some(p) else { fail("expected previous metrics") }
   assert_eq(p.date, "2026-10-17")
+
   guard p.patterns.get("review") is Some(review) else { fail("no review") }
   assert_eq((review.messages, review.sessions), (2, 1))
 }
@@ -70,6 +74,7 @@ test "parse_previous_metrics reads its own output" {
 ///|
 test "parse_previous_metrics treats an empty object as no previous run" {
   assert_true(@messages.parse_previous_metrics("{}", date="d") is None)
+
   guard @messages.parse_previous_metrics("{\"messages\": 1}", date="d")
     is Some(p) else {
     fail("expected previous metrics")

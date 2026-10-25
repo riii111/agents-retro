@@ -7,6 +7,7 @@ test "permission candidates retain tool records and escaped types" {
     ] {
     assert_true(@permissions.is_candidate_line(line))
   }
+
   for
     line in [
       b"{\"type\":\"user\",\"message\":{\"content\":\"owner message\"}}", b"{\"type\":\"assistant\",\"message\":{\"content\":\"ordinary reply\"}}",
@@ -30,6 +31,7 @@ fn read_events(
 ///|
 test "complete permission report keeps causes sessions sandbox evidence and ordering" {
   let report = @permissions.Report::new(home="/home/me")
+
   read_events(
     report,
     (
@@ -43,17 +45,21 @@ test "complete permission report keeps causes sessions sandbox evidence and orde
       #|{"time":"1970-01-01T00:00:00+0000","event":"PermissionDenied","tool":"Bash","command":"cargo test","reason":"Auto mode could not evaluate this action","session":"one","cwd":"/home/me/repo"}
     ),
   )
+
   let session = report.start_session()
+
   session.read_line(
     (
       #|{"type":"assistant","message":{"content":[{"type":"tool_use","id":"shared","name":"Bash","input":{"command":"cargo test"}},{"type":"tool_result","tool_use_id":"shared","content":[{"text":"open /home/me/repo/.git/config: Operation not permitted\n'/home/me/.cache/tool/a/b': Read-only file system\ndeny network-outbound example.com:443"},null]}]}}
     ),
   )
+
   session.read_line(
     (
       #|{"message":{"content":[{"type":"tool_use","id":"outside","name":"Bash","input":{"command":"npm install","dangerouslyDisableSandbox":true}},{"type":"tool_result","tool_use_id":"outside","content":"open /secret: Operation not permitted\ndeny network-outbound ignored.example"}]}}
     ),
   )
+
   report
   .start_session()
   .read_line(
@@ -61,6 +67,7 @@ test "complete permission report keeps causes sessions sandbox evidence and orde
       #|{"message":{"content":[{"type":"tool_result","tool_use_id":"shared","content":"open /wrong: Operation not permitted"}]}}
     ),
   )
+
   let expected =
     #|# Sandbox report: last 7 days, 2 session records
     #|
@@ -105,6 +112,7 @@ test "complete permission report keeps causes sessions sandbox evidence and orde
     #|
     #|## Hosts the sandbox refused
     #|    1  example.com
+
   assert_eq(report.format(days=7L, records=2, limit=15), expected + "\n\n")
 }
 
@@ -145,6 +153,7 @@ test "empty permission report" {
     #|
     #|## Hosts the sandbox refused
     #|(none)
+
   assert_eq(
     @permissions.Report::new(home="/home/me").format(
       days=7L,
@@ -158,6 +167,7 @@ test "empty permission report" {
 ///|
 test "permission cutoff malformed lines and limited stable ordering" {
   let report = @permissions.Report::new(home="/home/me")
+
   read_events(
     report,
     (
@@ -171,19 +181,25 @@ test "permission cutoff malformed lines and limited stable ordering" {
       #|{"time":"1970-01-01T00:00:01+0000","event":"PermissionRequest","tool":"Bash","command":"alpha","session":"two"}
     ),
   )
+
   let limited = report.format(days=7L, records=0, limit=1)
+
   assert_true(
     limited.contains(
       "## Permission prompts by command\n    2  zeta  (2 sessions)\n\n",
     ),
   )
   assert_false(limited.contains("alpha"))
+
   let all = report.format(days=7L, records=0, limit=15)
+
   assert_true(
     all.contains("    2  zeta  (2 sessions)\n    2  alpha  (1 sessions)\n"),
   )
   assert_false(all.contains("excluded"))
+
   let limit = 0
+
   assert_true(
     report
     .format(days=7L, records=0, limit~)
@@ -194,6 +210,7 @@ test "permission cutoff malformed lines and limited stable ordering" {
 ///|
 test "events with missing and null tool names use unknown" {
   let report = @permissions.Report::new(home="/home/me")
+
   read_events(
     report,
     (
@@ -202,7 +219,9 @@ test "events with missing and null tool names use unknown" {
       #|{"time":"1970-01-01T00:00:00+0000","event":"PermissionRequest","session":"one","tool":"Read"}
     ),
   )
+
   let output = report.format(days=7L, records=0, limit=15)
+
   assert_true(output.contains("    2  tool: unknown  (2 sessions)\n"))
   assert_true(output.contains("    1  tool: Read  (1 sessions)\n"))
   assert_false(output.contains("tool: None"))
@@ -211,18 +230,23 @@ test "events with missing and null tool names use unknown" {
 ///|
 test "raw Unicode line separators remain inside JSON event and session records" {
   let report = @permissions.Report::new(home="/home/me")
+
   report.read_event(
     "{\"time\":\"1970-01-01T00:00:00+0000\",\"event\":\"PermissionRequest\",\"tool\":\"Bash\",\"command\":\"git\u{2028}status\",\"cwd\":\"/home/me/repo\u{2028}name\"}",
     since_ms=0L,
   )
+
   report
   .start_session()
   .read_line(
     "{\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"unicode\",\"name\":\"Bash\",\"input\":{\"command\":\"git\u{2028}status\",\"dangerouslyDisableSandbox\":true}}]}}",
   )
+
   let output = report.format(days=7L, records=1, limit=15)
+
   assert_true(output.contains("    1  git status  (1 sessions)"))
   assert_true(output.contains("    1  ~/repo\u{2028}name\n"))
+
   assert_true(
     output.contains(
       "## Commands rerun outside the sandbox\n    1  git status\n",

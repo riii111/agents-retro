@@ -21,6 +21,7 @@ test "collect filters, dedupes and numbers in time order" {
     ],
     since="2026-10-17T00:00:00.000000+00:00",
   )
+
   assert_eq(messages.map(m => (m.id, m.text)), [
     (1, "first"),
     (2, "middle"),

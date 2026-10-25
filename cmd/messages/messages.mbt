@@ -19,6 +19,7 @@ fn paths(matches : @argparse.Matches) -> (String, String) raise {
   guard matches.values.get("out-dir") is Some([out_dir, ..]) else {
     fail("--out-dir is required for message reports")
   }
+
   (patterns, out_dir)
 }
 
@@ -31,13 +32,16 @@ pub async fn run(
   let days = @string.parse_int64(matches.values["days"][0])
   let (patterns_path, out_dir) = paths(matches)
   let since_ms = now_ms - days * 86_400_000L
+
   let today = local_date()
   let patterns = @analysis.parse_patterns(read_text(patterns_path))
+
   let since = @analysis.utc_isoformat(since_ms)
   let (messages, delegated) = @analysis.collect(
     read_logs(home, since_ms),
     since~,
   )
+
   @fs.mkdir(out_dir, recursive=true, allow_exist=true)
 
   let messages_path = "\{out_dir}/\{today}-messages.tsv"
@@ -51,6 +55,7 @@ pub async fn run(
       @analysis.example_tsv_line(e.0, e.1)
     }),
   )
+
   let chunks = @analysis.unmatched_chunks(messages, hits)
   let unmatched_paths = write_unmatched_chunks(out_dir, today, chunks)
 
@@ -87,22 +92,26 @@ async fn read_logs(
       path.has_suffix("session-corrections.jsonl") {
       continue
     }
+
     let project = basename(dirname(path))
     let session = stem(basename(path))
     @logfiles.each_line(path, line => {
       if !@analysis.is_candidate_line(line) {
         return
       }
+
       if @analysis.claude_message(@utf8.decode_lossy(line), project~, session~)
         is Some(row) {
         rows.push(row)
       }
     })
   }
+
   for path in jsonl_files("\{home}/.codex/sessions", depth=4) {
     if @logfiles.modified_before(path, since_ms) {
       continue
     }
+
     let reader = @analysis.CodexSession::new(
       @analysis.take_last_chars(stem(basename(path)), 36),
     )
@@ -110,11 +119,13 @@ async fn read_logs(
       if !@analysis.is_candidate_line(line) {
         return
       }
+
       if reader.read_line(@utf8.decode_lossy(line)) is Some(row) {
         rows.push(row)
       }
     })
   }
+
   rows
 }
 
@@ -131,6 +142,7 @@ async fn write_unmatched_chunks(
       @fs.remove("\{out_dir}/\{name}")
     }
   }
+
   let paths = []
   for i, chunk in chunks {
     let number = if i < 9 { "0\{i + 1}" } else { "\{i + 1}" }
@@ -138,6 +150,7 @@ async fn write_unmatched_chunks(
     write_lines(path, chunk.map(@analysis.unmatched_tsv_line))
     paths.push(path)
   }
+
   paths
 }
 
@@ -151,8 +164,10 @@ async fn previous_metrics(
     !name.has_suffix("\{today}-metrics.json")
   })
   guard !names.is_empty() else { return None }
+
   names.sort_by((a, b) => a.lexical_compare(b))
   let latest = names[names.length() - 1]
+
   @analysis.parse_previous_metrics(
     read_text("\{out_dir}/\{latest}"),
     date=@analysis.take_chars(latest, 10),
@@ -164,6 +179,7 @@ async fn previous_metrics(
 async fn local_date() -> String {
   let (status, out) = @process.collect_stdout("date", ["+%Y-%m-%d"])
   guard status == 0 else { fail("date exited with status \{status}") }
+
   out.text().trim().to_owned()
 }
 
@@ -173,6 +189,7 @@ async fn jsonl_files(root : String, depth~ : Int32) -> Array[String] {
   if !@fs.exists(root) {
     return []
   }
+
   let mut dirs = [root]
   for _ in 1..<depth {
     let next = []
@@ -186,6 +203,7 @@ async fn jsonl_files(root : String, depth~ : Int32) -> Array[String] {
     }
     dirs = next
   }
+
   let files = []
   for dir in dirs {
     for name in @fs.readdir(dir, include_hidden=false) {
@@ -194,6 +212,7 @@ async fn jsonl_files(root : String, depth~ : Int32) -> Array[String] {
       }
     }
   }
+
   files
 }
 
@@ -209,6 +228,7 @@ async fn write_lines(path : String, lines : Array[String]) -> Unit {
     out.write_string(line)
     out.write_char('\n')
   }
+
   @fs.write_file(path, out.to_string())
 }
 

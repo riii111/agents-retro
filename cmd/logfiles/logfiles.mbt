@@ -8,6 +8,7 @@ pub async fn modified_before(path : String, ms : Int64) -> Bool {
 pub async fn each_line(path : String, handle : (BytesView) -> Unit) -> Unit {
   let file = @fs.open(path, mode=ReadOnly)
   defer file.close()
+
   let partial = Buffer()
   while file.read_some(max_len=1 << 20) is Some(chunk) {
     let mut start = 0
@@ -15,6 +16,7 @@ pub async fn each_line(path : String, handle : (BytesView) -> Unit) -> Unit {
       if chunk[i] != b'\n' {
         continue
       }
+
       if partial.is_empty() {
         handle(chunk[start:i])
       } else {
@@ -22,10 +24,13 @@ pub async fn each_line(path : String, handle : (BytesView) -> Unit) -> Unit {
         handle(partial.to_bytes())
         partial.reset()
       }
+
       start = i + 1
     }
+
     partial.write_bytesview(chunk[start:])
   }
+
   if !partial.is_empty() {
     handle(partial.to_bytes())
   }

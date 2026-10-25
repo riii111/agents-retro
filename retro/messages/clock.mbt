@@ -10,6 +10,7 @@ pub fn utc_isoformat(ms : Int64) -> String {
   let s = day_ms / 1000L % 60L
   let micros = day_ms % 1000L * 1000L
   let fraction = if micros == 0L { "" } else { ".\{pad(micros, 6)}" }
+
   "\{utc_date(ms)}T\{pad(h, 2)}:\{pad(min, 2)}:\{pad(s, 2)}\{fraction}+00:00"
 }
 
@@ -42,6 +43,7 @@ fn civil_from_days(days : Int64) -> (Int64, Int64, Int64) {
   let day = doy - (153L * mp + 2L) / 5L + 1L
   let month = if mp < 10L { mp + 3L } else { mp - 9L }
   let year = yoe + era * 400L + (if month <= 2L { 1L } else { 0L })
+
   (year, month, day)
 }
 

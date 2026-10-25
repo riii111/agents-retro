@@ -16,6 +16,7 @@ fn time_ms(text : String) -> Int64? {
   guard time_number(m, "offset_minute") is Some(offset_minute) else {
     return None
   }
+
   guard year > 0L &&
     month >= 1L &&
     month <= 12L &&
@@ -26,6 +27,7 @@ fn time_ms(text : String) -> Int64? {
     offset_minute < 60L else {
     return None
   }
+
   let leap = year % 4L == 0L && (year % 100L != 0L || year % 400L == 0L)
   let max_day = if month == 2L && leap {
     29L
@@ -34,14 +36,17 @@ fn time_ms(text : String) -> Int64? {
     1]
   }
   guard day >= 1L && day <= max_day else { return None }
+
   let sign = if m.named_group("sign") == Some("-") { -1L } else { 1L }
   let offset = sign * (offset_hour * 3600L + offset_minute * 60L)
+
   let y = year - (if month <= 2L { 1L } else { 0L })
   let era = y / 400L
   let yoe = y - era * 400L
   let mp = month + (if month > 2L { -3L } else { 9L })
   let doy = (153L * mp + 2L) / 5L + day - 1L
   let days = era * 146097L + yoe * 365L + yoe / 4L - yoe / 100L + doy - 719468L
+
   Some((days * 86400L + hour * 3600L + minute * 60L + second - offset) * 1000L)
 }
 

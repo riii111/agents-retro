@@ -35,7 +35,9 @@ test "permission hook timestamps and invalid dates" {
     ] {
     assert_eq(time_ms(text), Some(0L), msg=text)
   }
+
   assert_eq(time_ms("2000-02-29T00:00:00+0000"), Some(951782400000L))
+
   for
     text in [
       "1900-02-29T00:00:00+0000", "2026-02-30T00:00:00+0000", "0000-01-01T00:00:00+0000",
@@ -59,6 +61,7 @@ test "home shortening respects complete directory boundaries" {
     ] {
     assert_eq(replace_home(path, "/home/me"), expected, msg=path)
   }
+
   for
     (path, expected) in [
       ("/home/me", "~"),
@@ -83,5 +86,6 @@ test "permission regex whitespace agrees with text whitespace" {
       msg=i.to_string(),
     )
   }
+
   assert_false(whitespace.execute("\u{feff}") is Some(_))
 }

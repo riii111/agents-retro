@@ -8,7 +8,9 @@ test "claude_message keeps user turns only" {
     #|not json
     #|{"type":"user","message":{"content":[{"type":"text","text":"a"},{"type":"image"},{"type":"text","text":"b"}]}}
     #|{"type":"user","message":{"content":"   "}}
+
   let rows = claude_rows(log, project="-Users-me-repo", session="s1")
+
   assert_eq(rows.map(r => r.raw), ["hello", "a b"])
   assert_eq(rows[0].role, "main")
   assert_eq(rows[0].cwd, "/w")
@@ -19,11 +21,13 @@ test "claude_message keeps user turns only" {
 test "claude_message marks codex worktrees as worker" {
   let log =
     #|{"type":"user","message":{"content":"x"}}
+
   let rows = claude_rows(
     log,
     project="-Users-me--codex-worktrees-abc",
     session="s",
   )
+
   assert_eq(rows[0].role, "worker")
 }
 
@@ -36,9 +40,12 @@ test "CodexSession follows the thread source" {
     #|{"type":"response_item","payload":{"role":"assistant","content":[{"text":"reply"}]}}
     #|{"type":"session_meta","payload":{"thread_source":"subagent"}}
     #|{"type":"response_item","payload":{"role":"user","content":[{"text":"hidden"}]}}
+
   let rows = codex_rows(log, session="s")
+
   assert_eq(rows.length(), 1)
   assert_eq(rows[0].raw, "a b")
+
   assert_eq(rows[0].role, "worker")
   assert_eq(rows[0].cwd, "/w")
 }
@@ -77,6 +84,7 @@ test "is_candidate_line keeps user turns and Codex session metadata" {
       ),
     ] {
     let (line, expected) = case
+
     assert_eq(
       @messages.is_candidate_line(@utf8.encode(line)),
       expected,

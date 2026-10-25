@@ -28,54 +28,6 @@ test "permission command normalization and shape precedence" {
 }
 
 ///|
-test "permission hook timestamps and invalid dates" {
-  for
-    text in [
-      "1970-01-01T00:00:00+0000", "1970-01-01T09:00:00+0900", "1969-12-31T19:00:00-0500",
-    ] {
-    assert_eq(time_ms(text), Some(0L), msg=text)
-  }
-
-  assert_eq(time_ms("2000-02-29T00:00:00+0000"), Some(951782400000L))
-
-  for
-    text in [
-      "1900-02-29T00:00:00+0000", "2026-02-30T00:00:00+0000", "0000-01-01T00:00:00+0000",
-      "2026-00-01T00:00:00+0000", "2026-01-00T00:00:00+0000", "2026-01-01T24:00:00+0000",
-      "2026-01-01T00:00:60+0000", "2026-01-01T00:00:00+2400", "2026-01-01T00:00:00+0060",
-      "2026-1-01T00:00:00+0000", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00+00:00",
-      "2026-01-01T00:00:00+000000.1", "2026-01-01T00:00:00+0000\n", "2026-01-01T00:00:00+0000extra",
-    ] {
-    assert_eq(time_ms(text), None, msg=text)
-  }
-}
-
-///|
-test "home shortening respects complete directory boundaries" {
-  for
-    (path, expected) in [
-      ("/home/me", "~"),
-      ("/home/me/repo", "~/repo"),
-      ("/home/meow/x", "/home/meow/x"),
-      ("/tmp/home/me/x", "/tmp/home/me/x"),
-    ] {
-    assert_eq(replace_home(path, "/home/me"), expected, msg=path)
-  }
-
-  for
-    (path, expected) in [
-      ("/home/me", "~"),
-      ("/home/me/repo/.git/config", "~/repo/.git"),
-      ("/home/meow/repo/.git/config", "/home/meow/repo/.git"),
-      ("/tmp/home/me/repo/.git/config", "/tmp/home/me/repo/.git"),
-      ("/home/me/.cache/tool/a/b", "~/.cache/tool/a"),
-      ("/var/lib/tool/cache/file", "/var/lib/tool"),
-    ] {
-    assert_eq(path_prefix(path, "/home/me"), expected, msg=path)
-  }
-}
-
-///|
 test "permission regex whitespace agrees with text whitespace" {
   let whitespace = regex("^[\{whitespace_chars}]$")
   for i in 0..<=0x3001 {

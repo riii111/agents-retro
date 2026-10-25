@@ -20,19 +20,21 @@ pub fn claude_message(
   project~ : String,
   session~ : String,
 ) -> RawMessage? {
-  guard parse_object(line) is Some(d) else { return None }
+  guard @records.parse_object(line) is Some(d) else { return None }
   if !(d.get("type") is Some(String("user"))) ||
     d.get("isMeta") is Some(True) ||
     d.get("isSidechain") is Some(True) {
     return None
   }
+
   let content = match d.get("message") {
     Some(Object(m)) => claude_content(m.get("content"))
     _ => None
   }
   guard content is Some(raw) && !is_blank(raw) else { return None }
+
   Some({
-    ts: string_field(d, "timestamp"),
+    ts: @records.string_field(d, "timestamp"),
     app: "claude",
     role: if project.contains("-codex-worktrees-") {
       "worker"
@@ -40,7 +42,7 @@ pub fn claude_message(
       "main"
     },
     session,
-    cwd: string_field(d, "cwd"),
+    cwd: @records.string_field(d, "cwd"),
     raw,
   })
 }
@@ -64,40 +66,45 @@ pub fn CodexSession::read_line(
   self : CodexSession,
   line : StringView,
 ) -> RawMessage? {
-  guard parse_object(line) is Some(d) else { return None }
+  guard @records.parse_object(line) is Some(d) else { return None }
   let payload = match d.get("payload") {
     Some(Object(p)) => p
     _ => Map([])
   }
-  let kind = string_field(d, "type")
+
+  let kind = @records.string_field(d, "type")
   if kind == "session_meta" {
     self.source = match payload.get("thread_source") {
       Some(String(s)) => Some(s)
       _ => None
     }
-    self.cwd = string_field(payload, "cwd")
+    self.cwd = @records.string_field(payload, "cwd")
     return None
   }
+
   guard self.source is Some(src) && codex_human_sources.contains(src) else {
     return None
   }
-  if kind != "response_item" || string_field(payload, "role") != "user" {
+  if kind != "response_item" || @records.string_field(payload, "role") != "user" {
     return None
   }
+
   let texts = []
   if payload.get("content") is Some(Array(items)) {
     for item in items {
       if item is Object(c) {
-        texts.push(string_field(c, "text"))
+        texts.push(@records.string_field(c, "text"))
       }
     }
   }
+
   let raw = texts.join(" ")
   if is_blank(raw) {
     return None
   }
+
   Some({
-    ts: string_field(d, "timestamp"),
+    ts: @records.string_field(d, "timestamp"),
     app: "codex",
     role: if src == "agent_created_thread" {
       "worker"
@@ -120,23 +127,8 @@ pub fn is_candidate_line(line : BytesView) -> Bool {
 }
 
 ///|
-fn parse_object(line : StringView) -> Map[String, Json]? {
-  let json = @json.parse(line) catch { _ => return None }
-  guard json is Object(obj) else { return None }
-  Some(obj)
-}
-
-///|
-fn string_field(obj : Map[String, Json], key : String) -> String {
-  match obj.get(key) {
-    Some(String(s)) => s
-    _ => ""
-  }
-}
-
-///|
 fn is_blank(text : String) -> Bool {
-  text.iter().all(is_space)
+  text.iter().all(@whitespace.is_space)
 }
 
 ///|
@@ -147,9 +139,10 @@ fn claude_content(content : Json?) -> String? {
       let texts = []
       for item in items {
         if item is Object(c) && c.get("type") is Some(String("text")) {
-          texts.push(string_field(c, "text"))
+          texts.push(@records.string_field(c, "text"))
         }
       }
+
       Some(texts.join(" "))
     }
     _ => None

@@ -1,12 +1,12 @@
 # agents-retro
 
-Find the instructions you keep repeating to your coding agents.
+Find repeated instructions and permission interruptions worth turning into hooks, settings, or skills.
 
-agents-retro reads your local Claude Code and Codex logs, keeps only the messages you typed, and counts them by the patterns you choose. A weekly look at those counts shows which requests, corrections, and nudges are worth turning into a hook, a setting, or a skill so you stop typing them.
+agents-retro reads local Claude Code and Codex logs to show what keeps interrupting your work. It counts the messages you typed and Claude Code permission or sandbox problems.
 
 ## Install
 
-Build from source with the [MoonBit](https://www.moonbitlang.com/) toolchain on macOS (Apple silicon) or Linux (x86_64).
+Build from source with [MoonBit](https://www.moonbitlang.com/) on macOS (Apple silicon) or Linux (x86_64):
 
 ```sh
 git clone https://github.com/riii111/agents-retro
@@ -17,50 +17,31 @@ mkdir -p ~/.local/bin
 install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/agents-retro
 ```
 
-If `agents-retro --help` is not found, add `~/.local/bin` to your `PATH`.
+Add `~/.local/bin` to your `PATH` if needed.
 
-## Usage
+## Repeated instructions
+
+Create `patterns.json` from [the example](skills/agents-retro/references/patterns.example.json), then run:
 
 ```sh
 agents-retro --days 7 --patterns patterns.json --out-dir ~/retro
 ```
 
-The output prints how many messages each pattern matched and how that compares with the previous run in the same directory.
+Each pattern maps a category to a regular expression. Use `[[:digit:]]`, `[[:space:]]`, and `[[:word:]]` instead of `\d`, `\s`, and `\w`, and write `-` inside brackets as `\-`.
 
-```text
-Owner messages: 408 in 222 sessions (agent-to-agent messages excluded: 133)
-  claude/main: 297
-  codex/user: 74
+The report counts matching messages and sessions and compares them with the previous run. Dated messages, examples, unmatched messages, and metrics are saved in the output directory. Agent-to-agent messages and app-inserted text are excluded.
 
-Patterns (messages / sessions)  vs 2026-10-17
-  Merge conflicts: 12 / 9  (was 18 / 13)
-  Asking for shorter answers: 7 / 6  (was 5 / 4)
+## Permission interruptions
+
+```sh
+agents-retro permissions --days 7 --limit 15
 ```
 
-The output directory gets these files, named by date:
+See recurring Claude Code permission prompts, auto mode denials, and sandbox failures by command, path, or host. Prompts and denials require [permission event recording](skills/permission-analyze/references/recording.md); sandbox failures use existing session logs. Codex approval events are outside its scope.
 
-| File | Contents |
-|---|---|
-| `<date>-messages.tsv` | Every message you typed, one per line |
-| `<date>-examples.tsv` | Up to three messages per pattern, each from a different session |
-| `<date>-unmatched-<nn>.tsv` | Messages that match no pattern, 100 per file |
-| `<date>-metrics.json` | Counts used for the next comparison |
+## Agent skills
 
-Messages that agents sent to each other and text the apps inserted are left out.
+Copy either skill directory into your agent's skills directory, or reference it from your own skill:
 
-## Patterns
-
-The patterns file maps a category name to a regular expression. Start from [the example](skills/agents-retro/references/patterns.example.json) and add the phrases you notice yourself repeating.
-
-```json
-{
-  "Merge conflicts": "[Cc]onflict",
-  "Asking for shorter answers": "too long|shorter|more concise"
-}
-```
-
-Use `[[:digit:]]`, `[[:space:]]`, and `[[:word:]]` instead of `\d`, `\s`, and `\w`, and write `-` inside brackets as `\-`.
-
-## Let an agent run the retro
-
-[skills/agents-retro](skills/agents-retro/SKILL.md) is a skill that runs agents-retro, reads the results, and writes a report with three to five concrete proposals. Copy it into your agent's skills directory, or point your own skill at it and add your project-specific steps.
+- [agents-retro](skills/agents-retro/SKILL.md): review repeated instructions and propose ways to stop repeating them.
+- [permission-analyze](skills/permission-analyze/SKILL.md): interpret permission reports and propose settings improvements.

@@ -13,6 +13,7 @@ pub fn format_summary(
   for entry in metrics.by_role {
     lines.push("  \{entry.0}: \{entry.1}")
   }
+
   let versus = match previous {
     Some(p) => "  vs \{p.date}"
     None => ""
@@ -25,11 +26,14 @@ pub fn format_summary(
     }
     lines.push("  \{c.name}: \{c.messages} / \{c.sessions}\{delta}")
   }
+
   lines.push("\nUnmatched by any pattern: \{metrics.unmatched}")
+
   lines.push("\nExamples: \{examples_path}")
   for path in unmatched_paths {
     lines.push("Unmatched: \{path}")
   }
   lines.push("Messages (full text, line number = id): \{messages_path}")
+
   lines.join("\n")
 }

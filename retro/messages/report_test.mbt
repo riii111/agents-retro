@@ -1,5 +1,5 @@
 ///|
-fn msg(id : Int32, text : String, session~ : String) -> @retro.Message {
+fn msg(id : Int32, text : String, session~ : String) -> @messages.Message {
   {
     id,
     ts: "2026-10-20T01:23:45.000Z",
@@ -13,11 +13,11 @@ fn msg(id : Int32, text : String, session~ : String) -> @retro.Message {
 
 ///|
 fn review_hits(
-  messages : Array[@retro.Message],
-) -> Array[@retro.PatternHits] raise {
+  messages : Array[@messages.Message],
+) -> Array[@messages.PatternHits] raise {
   let source =
     #|{"review": "CR|CodeRabbit", "conflict": "コンフリクト"}
-  @retro.match_patterns(messages, @retro.parse_patterns(source))
+  @messages.match_patterns(messages, @messages.parse_patterns(source))
 }
 
 ///|
@@ -28,8 +28,9 @@ test "count_patterns counts messages and distinct sessions" {
     msg(3, "CR", session="b"),
     msg(4, "続けて", session="c"),
   ])
+
   assert_eq(
-    @retro.count_patterns(hits).map((c : @retro.PatternCount) => {
+    @messages.count_patterns(hits).map((c : @messages.PatternCount) => {
       (c.name, c.messages, c.sessions)
     }),
     [("review", 3, 2), ("conflict", 0, 0)],
@@ -45,7 +46,7 @@ test "pattern_examples takes up to three messages from distinct sessions" {
     msg(4, "CR 4", session="c"),
     msg(5, "CR 5", session="d"),
   ])
-  assert_eq(@retro.pattern_examples(hits).map(e => (e.0, e.1.id)), [
+  assert_eq(@messages.pattern_examples(hits).map(e => (e.0, e.1.id)), [
     ("review", 1),
     ("review", 3),
     ("review", 4),
@@ -58,11 +59,13 @@ test "unmatched_chunks keeps unmatched messages in order, 100 per chunk" {
     let id = i + 1
     msg(id, if id % 5 == 0 { "CR" } else { "other" }, session="s")
   })
-  let chunks = @retro.unmatched_chunks(messages, review_hits(messages))
+
+  let chunks = @messages.unmatched_chunks(messages, review_hits(messages))
+
   assert_eq(chunks.map(c => c.length()), [100, 100])
   assert_eq(chunks[0][0].id, 1)
   assert_eq(chunks[0][4].id, 6)
-  assert_eq(@retro.unmatched_chunks([], review_hits([])).length(), 0)
+  assert_eq(@messages.unmatched_chunks([], review_hits([])).length(), 0)
 }
 
 ///|
@@ -73,7 +76,8 @@ test "count_by_role sorts keys lexicographically" {
     { ..msg(3, "c", session="s"), app: "claude", role: "main", },
     { ..msg(4, "d", session="s"), app: "claude", role: "main", },
   ]
-  assert_eq(@retro.count_by_role(messages), [
+
+  assert_eq(@messages.count_by_role(messages), [
     ("claude/main", 2),
     ("claude/worker", 1),
     ("codex/user", 1),
@@ -83,7 +87,7 @@ test "count_by_role sorts keys lexicographically" {
 ///|
 test "message_tsv_line" {
   assert_eq(
-    @retro.message_tsv_line(msg(7, "  a\n\tb\u{3000}c  ", session="s")),
+    @messages.message_tsv_line(msg(7, "  a\n\tb\u{3000}c  ", session="s")),
     "7\t2026-10-20T01:23\tcodex\tuser\ts\t/w\ta b c",
   )
 }
@@ -91,16 +95,20 @@ test "message_tsv_line" {
 ///|
 test "previews keep short text whole and cut long text to head and tail" {
   assert_eq(
-    @retro.example_tsv_line("review", msg(7, " a\nb ", session="s")),
+    @messages.example_tsv_line("review", msg(7, " a\nb ", session="s")),
     "review\t7\ts\ta b",
   )
+
   let head = "あ".repeat(140)
   let tail = "い".repeat(60)
   let long = msg(8, head + "う".repeat(100) + tail, session="s")
+
   assert_eq(
-    @retro.unmatched_tsv_line(long),
+    @messages.unmatched_tsv_line(long),
     "8\t\{head} …[300字]… \{tail}",
   )
+
   let limit = msg(9, "え".repeat(200), session="s")
-  assert_eq(@retro.unmatched_tsv_line(limit), "9\t\{"え".repeat(200)}")
+
+  assert_eq(@messages.unmatched_tsv_line(limit), "9\t\{"え".repeat(200)}")
 }

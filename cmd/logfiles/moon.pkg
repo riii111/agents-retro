@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/async/fs",
+}
+
+import {
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async",
+} for "test"
+
+supported_targets = "+native"

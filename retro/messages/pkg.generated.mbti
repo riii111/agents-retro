@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "riii111/agents-retro/retro"
+package "riii111/agents-retro/retro/messages"
 
 import {
   "moonbitlang/core/string",

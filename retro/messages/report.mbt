@@ -30,13 +30,16 @@ pub fn parse_patterns(source : String) -> Array[(String, @string.Regex)] raise {
   guard @json.parse(source) is Object(obj) else {
     fail("patterns must be a JSON object of category name to regex")
   }
+
   let patterns = []
   for name, value in obj {
     guard value is String(pattern) else {
       fail("pattern \{name} must be a string")
     }
+
     patterns.push((name, @string.Regex(pattern)))
   }
+
   patterns
 }
 
@@ -73,10 +76,12 @@ pub fn pattern_examples(hits : Array[PatternHits]) -> Array[(String, Message)] {
       if seen.contains(session_key(m)) {
         continue
       }
+
       seen.add(session_key(m))
       examples.push((h.name, m))
     }
   }
+
   examples
 }
 
@@ -91,6 +96,7 @@ pub fn unmatched_chunks(
       matched.add(m.id)
     }
   }
+
   let unmatched = messages.filter(m => !matched.contains(m.id))
   let chunks = []
   for start = 0
@@ -103,6 +109,7 @@ pub fn unmatched_chunks(
     }
     chunks.push(unmatched[start:end].to_owned())
   }
+
   chunks
 }
 
@@ -119,6 +126,7 @@ pub fn count_by_role(messages : Array[Message]) -> Array[(String, Int32)] {
     let key = "\{m.app}/\{m.role}"
     counts[key] = counts.get_or_default(key, 0) + 1
   }
+
   let keys = counts.keys().collect()
   keys.sort_by((a, b) => a.lexical_compare(b))
   keys.map(k => (k, counts[k]))
@@ -154,6 +162,7 @@ fn preview(text : String) -> String {
   if length <= preview_head + preview_tail {
     return flat
   }
+
   "\{take_chars(flat, preview_head)} …[\{length}字]… \{take_last_chars(flat, preview_tail)}"
 }
 

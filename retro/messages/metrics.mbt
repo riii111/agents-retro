@@ -25,6 +25,7 @@ pub fn Metrics::to_json(self : Metrics) -> String {
     ]
     (c.name, json_object(counts, depth=2))
   })
+
   json_object(
     [
       ("since", json_string(self.since)),
@@ -54,6 +55,7 @@ pub fn parse_previous_metrics(
   if obj.is_empty() {
     return None
   }
+
   let patterns : Map[String, PatternCount] = Map([])
   match obj.get("patterns") {
     None => ()
@@ -65,10 +67,12 @@ pub fn parse_previous_metrics(
         if counts.is_empty() {
           continue
         }
+
         guard counts.get("messages") is Some(Number(messages, ..)) &&
           counts.get("sessions") is Some(Number(sessions, ..)) else {
           fail("previous metrics for \{name} lack message or session counts")
         }
+
         patterns[name] = {
           name,
           messages: messages.to_int(),
@@ -77,6 +81,7 @@ pub fn parse_previous_metrics(
       }
     Some(_) => fail("previous metrics patterns must be an object")
   }
+
   Some({ date, patterns, })
 }
 
@@ -85,6 +90,7 @@ fn json_object(fields : Array[(String, String)], depth~ : Int32) -> String {
   if fields.is_empty() {
     return "{}"
   }
+
   let indent = " ".repeat(depth + 1)
   let body = fields.map(f => "\{indent}\{json_string(f.0)}: \{f.1}").join(",\n")
   "{\n\{body}\n\{" ".repeat(depth)}}"
@@ -94,6 +100,7 @@ fn json_object(fields : Array[(String, String)], depth~ : Int32) -> String {
 /// Escapes the same characters as Python's `json` with `ensure_ascii=False`.
 fn json_string(s : String) -> String {
   let out = StringBuilder()
+
   out.write_char('"')
   for c in s {
     match c {
@@ -113,6 +120,8 @@ fn json_string(s : String) -> String {
       _ => out.write_char(c)
     }
   }
+
   out.write_char('"')
+
   out.to_string()
 }

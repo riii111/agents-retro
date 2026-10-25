@@ -8,6 +8,7 @@ test "clean removes app-injected parts" {
       ("# Files mentioned by the user:\n- a.md", ""),
     ] {
     let (input, expected) = case
+
     assert_eq(clean(input), expected, msg=input)
   }
 }
@@ -25,6 +26,7 @@ test "is_injected ignores a leading skill reference" {
       ("$work-retro\u{3000}先週分", false),
     ] {
     let (input, expected) = case
+
     assert_eq(is_injected(input), expected, msg=input)
   }
 }

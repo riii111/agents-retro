@@ -14,6 +14,7 @@ async test "permission traversal reads hidden descendants without following dire
   )
   @fs.symlink(target="\{dir}/.hidden", "\{dir}/link")
   @fs.symlink(target="\{dir}/.hidden/deep/session.jsonl", "\{dir}/alias.jsonl")
+  @fs.symlink(target="\{dir}/missing.jsonl", "\{dir}/dangling.jsonl")
   let found = records(dir, 0L)
   found.sort_by((a, b) => a.lexical_compare(b))
   assert_eq(found, [
@@ -60,7 +61,7 @@ async test "permissions rejects negative numeric options and preserves zero" {
 }
 
 ///|
-async test "permission report streams tool records and raw Unicode events without message filtering" {
+async test "permission report keeps tool records and Unicode events with permission filtering" {
   let dir = @fs.tmpdir(prefix="permission-report")
   defer @fs.rmdir(dir, recursive=true)
   let projects = "\{dir}/projects"

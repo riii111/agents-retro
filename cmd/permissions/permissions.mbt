@@ -23,7 +23,9 @@ async fn report(
   for path in records {
     let session = report.start_session()
     @logfiles.each_line(path, line => {
-      session.read_line(@utf8.decode_lossy(line))
+      if @analysis.is_candidate_line(line) {
+        session.read_line(@utf8.decode_lossy(line))
+      }
     })
   }
   let events = matches.values["events"][0]
@@ -64,7 +66,6 @@ pub fn command(home : String) -> @argparse.Command {
 }
 
 ///|
-/// pathlib.rglob visits matching entries before descending, without following directory symlinks.
 async fn records(root : String, since_ms : Int64) -> Array[String] {
   let records = []
   if !@fs.exists(root) || @fs.kind(root, follow_symlink=true) != Directory {
@@ -79,9 +80,11 @@ async fn walk(root : String, since_ms : Int64, records : Array[String]) -> Unit 
   let names = @fs.readdir(root, include_hidden=true)
   for name in names {
     let path = "\{root}/\{name}"
-    if name.has_suffix(".jsonl") &&
-      @fs.kind(path, follow_symlink=true) is Regular &&
-      !@logfiles.modified_before(path, since_ms) {
+    if !name.has_suffix(".jsonl") {
+      continue
+    }
+    let kind = @fs.kind(path, follow_symlink=true) catch { _ => continue }
+    if kind is Regular && !@logfiles.modified_before(path, since_ms) {
       records.push(path)
     }
   }

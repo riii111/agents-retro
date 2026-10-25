@@ -13,6 +13,7 @@ test "permission command normalization and shape precedence" {
       ("cd /tmp; cd /repo", "", "compound"),
       ("git -C /repo", "git", "single command"),
       ("env -u", "", "single command"),
+      ("env -u; git status", "git status", "compound"),
       ("env -u TOKEN", "", "single command"),
       ("git -C /repo -C /other status", "git status", "single command"),
       ("echo '$(date); while true'", "echo", "single command"),
@@ -41,7 +42,7 @@ test "permission hook timestamps and invalid dates" {
       "2026-00-01T00:00:00+0000", "2026-01-00T00:00:00+0000", "2026-01-01T24:00:00+0000",
       "2026-01-01T00:00:60+0000", "2026-01-01T00:00:00+2400", "2026-01-01T00:00:00+0060",
       "2026-1-01T00:00:00+0000", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00+00:00",
-      "2026-01-01T00:00:00+000000.1",
+      "2026-01-01T00:00:00+000000.1", "2026-01-01T00:00:00+0000\n", "2026-01-01T00:00:00+0000extra",
     ] {
     assert_eq(time_ms(text), None, msg=text)
   }

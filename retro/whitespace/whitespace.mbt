@@ -1,5 +1,5 @@
 ///|
-/// Matches Python's whitespace set, including full-width spaces.
+/// Unicode whitespace plus the U+001C–U+001F control separators.
 pub fn is_space(c : Char) -> Bool {
   match c {
     '\t' | '\n' | '\u{0b}' | '\u{0c}' | '\r' | ' ' => true

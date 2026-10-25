@@ -2,6 +2,7 @@
 package "riii111/agents-retro/retro/permissions"
 
 // Values
+pub fn is_candidate_line(BytesView) -> Bool
 
 // Errors
 

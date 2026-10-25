@@ -51,6 +51,13 @@ let network : @string.Regex = regex(
 )
 
 ///|
+pub fn is_candidate_line(line : BytesView) -> Bool {
+  line.find(b"\"tool_use\"") is Some(_) ||
+  line.find(b"\"tool_result\"") is Some(_) ||
+  line.find(b"\\u") is Some(_)
+}
+
+///|
 pub fn Report::new(home~ : String) -> Report {
   {
     home,

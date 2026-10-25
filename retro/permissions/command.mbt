@@ -69,15 +69,12 @@ fn command_head(command : String) -> String {
       if (word.contains("=") && !word.has_prefix("-")) || word == "env" {
         start += 1
       } else if word == "-u" {
-        if start + 1 == words.length() {
-          return ""
-        }
         start += 2
       } else {
         break
       }
     }
-    if start == words.length() || words[start] == "cd" {
+    if start >= words.length() || words[start] == "cd" {
       continue
     }
     let head = words[start]

@@ -1,5 +1,14 @@
 ///|
-async fn permission_report(
+pub async fn run(
+  matches : @argparse.Matches,
+  home : String,
+  now_ms : Int64,
+) -> Unit {
+  @stdio.stdout.write(report(matches, home, now_ms))
+}
+
+///|
+async fn report(
   matches : @argparse.Matches,
   home : String,
   now_ms : Int64,
@@ -9,15 +18,17 @@ async fn permission_report(
   guard days >= 0L else { fail("--days must be non-negative") }
   guard limit >= 0 else { fail("--limit must be non-negative") }
   let since_ms = now_ms - days * 86_400_000L
-  let report = @retro.PermissionReport::new(home~)
-  let records = permission_records(matches.values["projects"][0], since_ms)
+  let report = @analysis.Report::new(home~)
+  let records = records(matches.values["projects"][0], since_ms)
   for path in records {
     let session = report.start_session()
-    each_line(path, line => session.read_line(@utf8.decode_lossy(line)))
+    @logfiles.each_line(path, line => {
+      session.read_line(@utf8.decode_lossy(line))
+    })
   }
   let events = matches.values["events"][0]
   if @fs.exists(events) {
-    each_line(events, line => {
+    @logfiles.each_line(events, line => {
       report.read_event(@utf8.decode_lossy(line), since_ms~)
     })
   }
@@ -25,7 +36,7 @@ async fn permission_report(
 }
 
 ///|
-fn permission_command(home : String) -> @argparse.Command {
+pub fn command(home : String) -> @argparse.Command {
   @argparse.Command(
     "permissions",
     about="Summarize Claude Code permissions and sandbox failures",
@@ -54,34 +65,30 @@ fn permission_command(home : String) -> @argparse.Command {
 
 ///|
 /// pathlib.rglob visits matching entries before descending, without following directory symlinks.
-async fn permission_records(root : String, since_ms : Int64) -> Array[String] {
+async fn records(root : String, since_ms : Int64) -> Array[String] {
   let records = []
   if !@fs.exists(root) || @fs.kind(root, follow_symlink=true) != Directory {
     return records
   }
-  permission_walk(root, since_ms, records)
+  walk(root, since_ms, records)
   records
 }
 
 ///|
-async fn permission_walk(
-  root : String,
-  since_ms : Int64,
-  records : Array[String],
-) -> Unit {
+async fn walk(root : String, since_ms : Int64, records : Array[String]) -> Unit {
   let names = @fs.readdir(root, include_hidden=true)
   for name in names {
     let path = "\{root}/\{name}"
     if name.has_suffix(".jsonl") &&
       @fs.kind(path, follow_symlink=true) is Regular &&
-      !modified_before(path, since_ms) {
+      !@logfiles.modified_before(path, since_ms) {
       records.push(path)
     }
   }
   for name in names {
     let path = "\{root}/\{name}"
     if @fs.kind(path, follow_symlink=false) is Directory {
-      permission_walk(path, since_ms, records)
+      walk(path, since_ms, records)
     }
   }
 }

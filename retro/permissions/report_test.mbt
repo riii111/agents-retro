@@ -1,6 +1,6 @@
 ///|
-fn permission_test_events(
-  report : @retro.PermissionReport,
+fn read_events(
+  report : @permissions.Report,
   source : String,
   since_ms~ : Int64 = 0L,
 ) -> Unit {
@@ -11,8 +11,8 @@ fn permission_test_events(
 
 ///|
 test "complete permission report keeps causes sessions sandbox evidence and ordering" {
-  let report = @retro.PermissionReport::new(home="/home/me")
-  permission_test_events(
+  let report = @permissions.Report::new(home="/home/me")
+  read_events(
     report,
     (
       #|{"time":"1970-01-01T09:00:00+0900","event":"PermissionRequest","tool":"Bash","command":"git status","session":"one","cwd":"/home/me/repo"}
@@ -128,7 +128,7 @@ test "empty permission report" {
     #|## Hosts the sandbox refused
     #|(none)
   assert_eq(
-    @retro.PermissionReport::new(home="/home/me").format(
+    @permissions.Report::new(home="/home/me").format(
       days=7L,
       records=0,
       limit=15,
@@ -139,8 +139,8 @@ test "empty permission report" {
 
 ///|
 test "permission cutoff malformed lines and limited stable ordering" {
-  let report = @retro.PermissionReport::new(home="/home/me")
-  permission_test_events(
+  let report = @permissions.Report::new(home="/home/me")
+  read_events(
     report,
     (
       #|{"time":"1970-01-01T08:59:59+0900","event":"PermissionRequest","tool":"Bash","command":"excluded"}
@@ -175,8 +175,8 @@ test "permission cutoff malformed lines and limited stable ordering" {
 
 ///|
 test "events with missing and null tool names use unknown" {
-  let report = @retro.PermissionReport::new(home="/home/me")
-  permission_test_events(
+  let report = @permissions.Report::new(home="/home/me")
+  read_events(
     report,
     (
       #|{"time":"1970-01-01T00:00:00+0000","event":"PermissionRequest","session":"one"}
@@ -192,7 +192,7 @@ test "events with missing and null tool names use unknown" {
 
 ///|
 test "raw Unicode line separators remain inside JSON event and session records" {
-  let report = @retro.PermissionReport::new(home="/home/me")
+  let report = @permissions.Report::new(home="/home/me")
   report.read_event(
     "{\"time\":\"1970-01-01T00:00:00+0000\",\"event\":\"PermissionRequest\",\"tool\":\"Bash\",\"command\":\"git\u{2028}status\",\"cwd\":\"/home/me/repo\u{2028}name\"}",
     since_ms=0L,

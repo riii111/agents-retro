@@ -48,16 +48,16 @@ fn claude_rows(
   log : String,
   project~ : String,
   session~ : String,
-) -> Array[@retro.RawMessage] {
+) -> Array[@messages.RawMessage] {
   log
   .split("\n")
-  .filter_map(line => @retro.claude_message(line, project~, session~))
+  .filter_map(line => @messages.claude_message(line, project~, session~))
   .collect()
 }
 
 ///|
-fn codex_rows(log : String, session~ : String) -> Array[@retro.RawMessage] {
-  let reader = @retro.CodexSession::new(session)
+fn codex_rows(log : String, session~ : String) -> Array[@messages.RawMessage] {
+  let reader = @messages.CodexSession::new(session)
   log.split("\n").filter_map(line => reader.read_line(line)).collect()
 }
 
@@ -77,6 +77,10 @@ test "is_candidate_line keeps user turns and Codex session metadata" {
       ),
     ] {
     let (line, expected) = case
-    assert_eq(@retro.is_candidate_line(@utf8.encode(line)), expected, msg=line)
+    assert_eq(
+      @messages.is_candidate_line(@utf8.encode(line)),
+      expected,
+      msg=line,
+    )
   }
 }

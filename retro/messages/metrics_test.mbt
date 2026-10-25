@@ -1,5 +1,5 @@
 ///|
-fn sample_metrics() -> @retro.Metrics {
+fn sample_metrics() -> @messages.Metrics {
   {
     since: "2026-10-17T01:02:03.456000+00:00",
     messages: 3,
@@ -46,7 +46,7 @@ test "to_json matches Python's json.dump with indent=1" {
 
 ///|
 test "to_json writes empty objects inline" {
-  let empty : @retro.Metrics = {
+  let empty : @messages.Metrics = {
     ..sample_metrics(),
     by_role: [],
     patterns: [],
@@ -57,7 +57,7 @@ test "to_json writes empty objects inline" {
 
 ///|
 test "parse_previous_metrics reads its own output" {
-  let previous = @retro.parse_previous_metrics(
+  let previous = @messages.parse_previous_metrics(
     sample_metrics().to_json(),
     date="2026-10-17",
   )
@@ -69,8 +69,9 @@ test "parse_previous_metrics reads its own output" {
 
 ///|
 test "parse_previous_metrics treats an empty object as no previous run" {
-  assert_true(@retro.parse_previous_metrics("{}", date="d") is None)
-  guard @retro.parse_previous_metrics("{\"messages\": 1}", date="d") is Some(p) else {
+  assert_true(@messages.parse_previous_metrics("{}", date="d") is None)
+  guard @messages.parse_previous_metrics("{\"messages\": 1}", date="d")
+    is Some(p) else {
     fail("expected previous metrics")
   }
   assert_true(p.patterns.is_empty())

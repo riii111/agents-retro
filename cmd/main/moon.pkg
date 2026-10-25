@@ -1,13 +1,9 @@
 import {
-  "riii111/agents-retro/retro",
+  "riii111/agents-retro/cmd/messages",
+  "riii111/agents-retro/cmd/permissions",
   "moonbitlang/core/argparse",
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
-  "moonbitlang/core/string",
   "moonbitlang/async",
-  "moonbitlang/async/fs",
-  "moonbitlang/async/process",
-  "moonbitlang/async/stdio",
 }
 
 supported_targets = "+native"

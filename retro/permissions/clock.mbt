@@ -1,11 +1,11 @@
 ///|
-let permission_timestamp : @string.Regex = permission_regex(
+let timestamp : @string.Regex = regex(
   "^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})([+\\-])([0-9]{2})([0-9]{2})$",
 )
 
 ///|
-fn permission_time_ms(text : String) -> Int64? {
-  guard text.length() == 24 && permission_timestamp.execute(text) is Some(m) else {
+fn time_ms(text : String) -> Int64? {
+  guard text.length() == 24 && timestamp.execute(text) is Some(m) else {
     return None
   }
   let numbers = []

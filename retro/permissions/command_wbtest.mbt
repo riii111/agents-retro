@@ -21,8 +21,8 @@ test "permission command normalization and shape precedence" {
       ("x=1\necho ok", "echo", "variable assignment"),
       ("echo '(while x)'", "echo", "single command"),
     ] {
-    assert_eq(permission_command_head(command), head, msg=command)
-    assert_eq(permission_command_shape(command), shape, msg=command)
+    assert_eq(command_head(command), head, msg=command)
+    assert_eq(command_shape(command), shape, msg=command)
   }
 }
 
@@ -32,9 +32,9 @@ test "permission hook timestamps and invalid dates" {
     text in [
       "1970-01-01T00:00:00+0000", "1970-01-01T09:00:00+0900", "1969-12-31T19:00:00-0500",
     ] {
-    assert_eq(permission_time_ms(text), Some(0L), msg=text)
+    assert_eq(time_ms(text), Some(0L), msg=text)
   }
-  assert_eq(permission_time_ms("2000-02-29T00:00:00+0000"), Some(951782400000L))
+  assert_eq(time_ms("2000-02-29T00:00:00+0000"), Some(951782400000L))
   for
     text in [
       "1900-02-29T00:00:00+0000", "2026-02-30T00:00:00+0000", "0000-01-01T00:00:00+0000",
@@ -43,7 +43,7 @@ test "permission hook timestamps and invalid dates" {
       "2026-1-01T00:00:00+0000", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00+00:00",
       "2026-01-01T00:00:00+000000.1",
     ] {
-    assert_eq(permission_time_ms(text), None, msg=text)
+    assert_eq(time_ms(text), None, msg=text)
   }
 }
 
@@ -56,7 +56,7 @@ test "home shortening respects complete directory boundaries" {
       ("/home/meow/x", "/home/meow/x"),
       ("/tmp/home/me/x", "/tmp/home/me/x"),
     ] {
-    assert_eq(permission_replace_home(path, "/home/me"), expected, msg=path)
+    assert_eq(replace_home(path, "/home/me"), expected, msg=path)
   }
   for
     (path, expected) in [
@@ -67,18 +67,18 @@ test "home shortening respects complete directory boundaries" {
       ("/home/me/.cache/tool/a/b", "~/.cache/tool/a"),
       ("/var/lib/tool/cache/file", "/var/lib/tool"),
     ] {
-    assert_eq(permission_path_prefix(path, "/home/me"), expected, msg=path)
+    assert_eq(path_prefix(path, "/home/me"), expected, msg=path)
   }
 }
 
 ///|
 test "permission regex whitespace agrees with text whitespace" {
-  let whitespace = permission_regex("^[\{permission_whitespace}]$")
+  let whitespace = regex("^[\{whitespace_chars}]$")
   for i in 0..<=0x3001 {
     let c = i.unsafe_to_char()
     assert_eq(
       whitespace.execute(c.to_string()) is Some(_),
-      is_space(c),
+      @whitespace.is_space(c),
       msg=i.to_string(),
     )
   }

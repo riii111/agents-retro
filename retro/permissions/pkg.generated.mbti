@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/agents-retro/retro/permissions"
+
+// Values
+
+// Errors
+
+// Types and methods
+type Call
+
+type Counter
+
+type Events
+
+pub struct Report {
+  // private fields
+}
+pub fn Report::format(Self, days~ : Int64, records~ : Int32, limit~ : Int32) -> String
+pub fn Report::new(home~ : String) -> Self
+pub fn Report::read_event(Self, StringView, since_ms~ : Int64) -> Unit
+pub fn Report::start_session(Self) -> Session
+
+pub struct Session {
+  // private fields
+}
+pub fn Session::read_line(Self, StringView) -> Unit
+
+// Type aliases
+
+// Traits

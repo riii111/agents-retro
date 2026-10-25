@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "riii111/agents-retro/retro"
+package "riii111/agents-retro/retro/messages"
 
 import {
   "moonbitlang/core/string",
@@ -84,25 +84,6 @@ pub(all) struct PatternHits {
   name : String
   messages : Array[Message]
 }
-
-type PermissionCall
-
-type PermissionCounter
-
-type PermissionEvents
-
-pub struct PermissionReport {
-  // private fields
-}
-pub fn PermissionReport::format(Self, days~ : Int64, records~ : Int32, limit~ : Int32) -> String
-pub fn PermissionReport::new(home~ : String) -> Self
-pub fn PermissionReport::read_event(Self, StringView, since_ms~ : Int64) -> Unit
-pub fn PermissionReport::start_session(Self) -> PermissionSession
-
-pub struct PermissionSession {
-  // private fields
-}
-pub fn PermissionSession::read_line(Self, StringView) -> Unit
 
 pub(all) struct PreviousMetrics {
   date : String

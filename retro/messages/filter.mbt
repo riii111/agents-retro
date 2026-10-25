@@ -121,7 +121,7 @@ fn skip_separators(text : StringView) -> StringView {
   while true {
     if rest.strip_prefix("&#x20;") is Some(after) {
       rest = after
-    } else if rest.iter().head() is Some(c) && is_space(c) {
+    } else if rest.iter().head() is Some(c) && @whitespace.is_space(c) {
       rest = rest[1:]
     } else {
       break

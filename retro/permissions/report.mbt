@@ -1,82 +1,77 @@
 ///|
-struct PermissionCounter {
+struct Counter {
   counts : Map[String, Int32]
 }
 
 ///|
-pub struct PermissionReport {
+pub struct Report {
   priv home : String
-  priv prompts : PermissionEvents
-  priv denials : PermissionEvents
-  priv causes : PermissionCounter
-  priv reruns : PermissionCounter
-  priv failed : PermissionCounter
-  priv writes : PermissionCounter
-  priv hosts : PermissionCounter
+  priv prompts : Events
+  priv denials : Events
+  priv causes : Counter
+  priv reruns : Counter
+  priv failed : Counter
+  priv writes : Counter
+  priv hosts : Counter
 }
 
 ///|
-struct PermissionEvents {
-  shapes : PermissionCounter
-  commands : PermissionCounter
-  places : PermissionCounter
+struct Events {
+  shapes : Counter
+  commands : Counter
+  places : Counter
   sessions : Map[String, Set[String]]
 }
 
 ///|
-struct PermissionCall {
+struct Call {
   head : String
   unsandboxed : Bool
 }
 
 ///|
-pub struct PermissionSession {
-  priv report : PermissionReport
-  priv calls : Map[String, PermissionCall]
+pub struct Session {
+  priv report : Report
+  priv calls : Map[String, Call]
 }
 
 ///|
-let permission_write_errors : @string.Regex = permission_regex(
+let write_errors : @string.Regex = regex(
   "Operation not permitted|Read-only file system|attempt to write a readonly database",
 )
 
 ///|
-let permission_quoted_path : @string.Regex = permission_regex(
-  "'(/[^'\n]+)'|\"(/[^\"\n]+)\"|(?:on|in|create|open) (/[^\{permission_whitespace}:'\")]+)",
+let quoted_path : @string.Regex = regex(
+  "'(/[^'\n]+)'|\"(/[^\"\n]+)\"|(?:on|in|create|open) (/[^\{whitespace_chars}:'\")]+)",
 )
 
 ///|
-let permission_network : @string.Regex = permission_regex(
-  "deny network-outbound ([^\{permission_whitespace}:\\\\]+)",
+let network : @string.Regex = regex(
+  "deny network-outbound ([^\{whitespace_chars}:\\\\]+)",
 )
 
 ///|
-pub fn PermissionReport::new(home~ : String) -> PermissionReport {
+pub fn Report::new(home~ : String) -> Report {
   {
     home,
-    prompts: PermissionEvents::new(),
-    denials: PermissionEvents::new(),
-    causes: PermissionCounter::new(),
-    reruns: PermissionCounter::new(),
-    failed: PermissionCounter::new(),
-    writes: PermissionCounter::new(),
-    hosts: PermissionCounter::new(),
+    prompts: Events::new(),
+    denials: Events::new(),
+    causes: Counter::new(),
+    reruns: Counter::new(),
+    failed: Counter::new(),
+    writes: Counter::new(),
+    hosts: Counter::new(),
   }
 }
 
 ///|
-pub fn PermissionReport::start_session(
-  self : PermissionReport,
-) -> PermissionSession {
+pub fn Report::start_session(self : Report) -> Session {
   { report: self, calls: Map([]), }
 }
 
 ///|
-pub fn PermissionSession::read_line(
-  self : PermissionSession,
-  line : StringView,
-) -> Unit {
-  guard parse_object(line) is Some(record) else { return }
+pub fn Session::read_line(self : Session, line : StringView) -> Unit {
+  guard @records.parse_object(line) is Some(record) else { return }
   guard record.get("message") is Some(Object(message)) &&
     message.get("content") is Some(Array(content)) else {
     return
@@ -84,46 +79,44 @@ pub fn PermissionSession::read_line(
   let report = self.report
   for item in content {
     guard item is Object(item) else { continue }
-    if string_field(item, "type") == "tool_use" &&
-      string_field(item, "name") == "Bash" {
+    if @records.string_field(item, "type") == "tool_use" &&
+      @records.string_field(item, "name") == "Bash" {
       guard item.get("id") is Some(String(id)) &&
         item.get("input") is Some(Object(input)) else {
         continue
       }
-      let call : PermissionCall = {
-        head: permission_command_head(string_field(input, "command")),
+      let call : Call = {
+        head: command_head(@records.string_field(input, "command")),
         unsandboxed: input.get("dangerouslyDisableSandbox") is Some(True),
       }
       self.calls[id] = call
       if call.unsandboxed {
         report.reruns.add(call.head)
       }
-    } else if string_field(item, "type") == "tool_result" {
+    } else if @records.string_field(item, "type") == "tool_result" {
       guard item.get("tool_use_id") is Some(String(id)) &&
         self.calls.get(id) is Some(call) &&
         !call.unsandboxed else {
         continue
       }
-      let output = permission_output(item.get("content"))
-      for m in permission_network.find(output) {
+      let output = output_text(item.get("content"))
+      for m in network.find(output) {
         if m.group(1) is Some(host) {
           report.hosts.add(host.to_owned())
         }
       }
-      if permission_write_errors.execute(output) is None {
+      if write_errors.execute(output) is None {
         continue
       }
       report.failed.add(call.head)
       for line in output.split("\n") {
-        if permission_write_errors.execute(line) is None {
+        if write_errors.execute(line) is None {
           continue
         }
-        for m in permission_quoted_path.find(line) {
+        for m in quoted_path.find(line) {
           for i in 1..<4 {
             if m.group(i) is Some(path) {
-              report.writes.add(
-                permission_path_prefix(path.to_owned(), report.home),
-              )
+              report.writes.add(path_prefix(path.to_owned(), report.home))
               break
             }
           }
@@ -134,45 +127,45 @@ pub fn PermissionSession::read_line(
 }
 
 ///|
-pub fn PermissionReport::read_event(
-  self : PermissionReport,
+pub fn Report::read_event(
+  self : Report,
   line : StringView,
   since_ms~ : Int64,
 ) -> Unit {
-  guard parse_object(line) is Some(record) else { return }
-  guard permission_time_ms(string_field(record, "time")) is Some(stamp) &&
+  guard @records.parse_object(line) is Some(record) else { return }
+  guard time_ms(@records.string_field(record, "time")) is Some(stamp) &&
     stamp >= since_ms else {
     return
   }
-  let event = string_field(record, "event")
+  let event = @records.string_field(record, "event")
   let counts = match event {
     "PermissionRequest" => self.prompts
     "PermissionDenied" => self.denials
     _ => return
   }
-  let cwd = string_field(record, "cwd")
+  let cwd = @records.string_field(record, "cwd")
   counts.places.add(
-    permission_replace_home(if cwd.is_empty() { "?" } else { cwd }, self.home),
+    replace_home(if cwd.is_empty() { "?" } else { cwd }, self.home),
   )
-  let (shape, head) = if string_field(record, "tool") == "Bash" {
-    let command = string_field(record, "command")
-    let shape = permission_command_shape(command)
+  let (shape, head) = if @records.string_field(record, "tool") == "Bash" {
+    let command = @records.string_field(record, "command")
+    let shape = command_shape(command)
     (
       if record.get("unsandboxed") is Some(True) {
         shape + " (rerun outside the sandbox)"
       } else {
         shape
       },
-      permission_command_head(command),
+      command_head(command),
     )
   } else {
-    let tool = string_field(record, "tool")
+    let tool = @records.string_field(record, "tool")
     let tool = if tool.is_empty() { "unknown" } else { tool }
     ("tool: \{tool}", "tool: \{tool}")
   }
   counts.shapes.add(shape)
   let head = if event == "PermissionDenied" {
-    let cause = permission_denial_cause(string_field(record, "reason"))
+    let cause = denial_cause(@records.string_field(record, "reason"))
     self.causes.add(cause)
     "\{cause} | \{head}"
   } else {
@@ -181,13 +174,13 @@ pub fn PermissionReport::read_event(
   if !counts.sessions.contains(head) {
     counts.sessions[head] = Set([])
   }
-  counts.sessions[head].add(string_field(record, "session"))
+  counts.sessions[head].add(@records.string_field(record, "session"))
   counts.commands.add(head)
 }
 
 ///|
-pub fn PermissionReport::format(
-  self : PermissionReport,
+pub fn Report::format(
+  self : Report,
   days~ : Int64,
   records~ : Int32,
   limit~ : Int32,
@@ -207,18 +200,18 @@ pub fn PermissionReport::format(
 }
 
 ///|
-fn PermissionEvents::new() -> PermissionEvents {
+fn Events::new() -> Events {
   {
-    shapes: PermissionCounter::new(),
-    commands: PermissionCounter::new(),
-    places: PermissionCounter::new(),
+    shapes: Counter::new(),
+    commands: Counter::new(),
+    places: Counter::new(),
     sessions: Map([]),
   }
 }
 
 ///|
-fn PermissionEvents::sections(
-  self : PermissionEvents,
+fn Events::sections(
+  self : Events,
   out : StringBuilder,
   label : String,
   by_command : String,
@@ -232,18 +225,18 @@ fn PermissionEvents::sections(
 }
 
 ///|
-fn PermissionCounter::new() -> PermissionCounter {
+fn Counter::new() -> Counter {
   { counts: Map([]), }
 }
 
 ///|
-fn PermissionCounter::add(self : PermissionCounter, key : String) -> Unit {
+fn Counter::add(self : Counter, key : String) -> Unit {
   self.counts[key] = self.counts.get_or_default(key, 0) + 1
 }
 
 ///|
-fn PermissionCounter::section(
-  self : PermissionCounter,
+fn Counter::section(
+  self : Counter,
   out : StringBuilder,
   title : String,
   limit : Int32,
@@ -278,14 +271,14 @@ fn PermissionCounter::section(
 }
 
 ///|
-fn permission_output(content : Json?) -> String {
+fn output_text(content : Json?) -> String {
   match content {
     Some(String(s)) => s
     Some(Array(items)) =>
       items
       .filter_map(item => {
         match item {
-          Object(item) => Some(string_field(item, "text"))
+          Object(item) => Some(@records.string_field(item, "text"))
           _ => None
         }
       })

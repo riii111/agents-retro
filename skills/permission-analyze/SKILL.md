@@ -15,7 +15,7 @@ agents-retro permissions --days 7 --limit 15
 
 Days default to 7 and each section shows up to 15 entries. Use `--projects <directory>` for Claude Code session logs and `--events <file>` for permission events. The defaults are `~/.claude/projects` and `~/.local/state/claude/permission-events.jsonl`.
 
-Permission prompts and auto mode denials require events recorded by a `log-permission-event` hook; see [recording setup and event format](../../README.md#record-permission-events). Sandbox failures come from session logs. An empty section can mean missing records; it does not establish that no interruption occurred. Session files are selected by modification time; events are selected by their recorded time.
+Permission prompts and auto mode denials require events recorded by a `log-permission-event` hook; see [recording setup and event format](references/recording.md). Sandbox failures come from session logs. An empty section can mean missing records; it does not establish that no interruption occurred. Session files are selected by modification time; events are selected by their recorded time.
 
 Read the active Claude Code settings and their managed source before proposing changes. Locate that source using the user's configuration workflow. Prioritize any concrete complaint, then frequency and the number of distinct sessions shown beside each command. Repetition within one session carries less weight.
 

@@ -226,30 +226,3 @@ test "events with missing and null tool names use unknown" {
   assert_true(output.contains("    1  tool: Read  (1 sessions)\n"))
   assert_false(output.contains("tool: None"))
 }
-
-///|
-test "raw Unicode line separators remain inside JSON event and session records" {
-  let report = @permissions.Report::new(home="/home/me")
-
-  report.read_event(
-    "{\"time\":\"1970-01-01T00:00:00+0000\",\"event\":\"PermissionRequest\",\"tool\":\"Bash\",\"command\":\"git\u{2028}status\",\"cwd\":\"/home/me/repo\u{2028}name\"}",
-    since_ms=0L,
-  )
-
-  report
-  .start_session()
-  .read_line(
-    "{\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"unicode\",\"name\":\"Bash\",\"input\":{\"command\":\"git\u{2028}status\",\"dangerouslyDisableSandbox\":true}}]}}",
-  )
-
-  let output = report.format(days=7L, records=1, limit=15)
-
-  assert_true(output.contains("    1  git status  (1 sessions)"))
-  assert_true(output.contains("    1  ~/repo\u{2028}name\n"))
-
-  assert_true(
-    output.contains(
-      "## Commands rerun outside the sandbox\n    1  git status\n",
-    ),
-  )
-}

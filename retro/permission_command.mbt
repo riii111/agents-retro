@@ -1,6 +1,8 @@
 ///|
-/// Python's Unicode \s includes four control separators absent from Unicode White_Space.
-let permission_whitespace : String = "\t\n\u{0b}\u{0c}\r \u{1c}-\u{1f}\u{85}\u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}"
+let permission_whitespace : String = permission_space_chars()
+
+///|
+let permission_rule : @string.Regex = permission_regex("\\[([^\\]]+)\\]")
 
 ///|
 let permission_segments : @string.Regex = permission_regex("&&|;|\n")
@@ -23,6 +25,18 @@ fn permission_regex(pattern : String) -> @string.Regex {
   @string.Regex(pattern) catch {
     _ => abort("invalid permission report regex")
   }
+}
+
+///|
+fn permission_space_chars() -> String {
+  let out = StringBuilder()
+  for i in 0..<=0x3000 {
+    let c = i.unsafe_to_char()
+    if is_space(c) {
+      out.write_char(c)
+    }
+  }
+  out.to_string()
 }
 
 ///|
@@ -54,7 +68,10 @@ fn permission_command_head(command : String) -> String {
       let word = words[start]
       if (word.contains("=") && !word.has_prefix("-")) || word == "env" {
         start += 1
-      } else if word == "-u" && start + 1 < words.length() {
+      } else if word == "-u" {
+        if start + 1 == words.length() {
+          return ""
+        }
         start += 2
       } else {
         break
@@ -67,16 +84,16 @@ fn permission_command_head(command : String) -> String {
     if ["git", "gh", "bun", "bunx", "npm", "npx", "cargo", "go", "nix", "uv"].contains(
         head,
       ) {
-      let rest_start = if words.get(start + 1) == Some("-C") &&
-        start + 3 < words.length() {
-        start + 3
-      } else {
-        start + 1
-      }
-      for i in rest_start..<words.length() {
+      let mut i = start + 1
+      while i < words.length() {
+        if words[i] == "-C" {
+          i += 2
+          continue
+        }
         if !words[i].has_prefix("-") {
           return "\{head} \{words[i]}"
         }
+        i += 1
       }
     }
     return head
@@ -86,17 +103,55 @@ fn permission_command_head(command : String) -> String {
 
 ///|
 fn permission_command_shape(command : String) -> String {
-  if permission_loop.execute(command) is Some(_) {
+  let syntax = permission_shell_syntax(command)
+  if permission_loop.execute(syntax) is Some(_) {
     "loop"
-  } else if command.contains("$(") || command.contains("`") {
+  } else if syntax.contains("$(") || syntax.contains("`") {
     "command substitution"
-  } else if permission_assignment.execute(command) is Some(_) {
+  } else if permission_assignment.execute(syntax) is Some(_) {
     "variable assignment"
-  } else if permission_compound.execute(command) is Some(_) {
+  } else if permission_compound.execute(syntax) is Some(_) {
     "compound"
   } else {
     "single command"
   }
+}
+
+///|
+/// Quoted arguments are not shell control syntax; double quotes still allow substitution.
+fn permission_shell_syntax(command : String) -> String {
+  let out = StringBuilder()
+  let chars = command.iter().collect()
+  let mut quote : Char? = None
+  let mut i = 0
+  while i < chars.length() {
+    let c = chars[i]
+    if c == '\\' && quote != Some('\'') {
+      out.write_char(' ')
+      i += 2
+      continue
+    }
+    if quote is Some(q) {
+      if c == q {
+        quote = None
+      } else if q == '"' {
+        if c == '`' {
+          out.write_char('`')
+        }
+        if c == '$' && chars.get(i + 1) == Some('(') {
+          out.write_string("$(")
+        }
+      }
+      out.write_char(' ')
+    } else if c == '\'' || c == '"' {
+      quote = Some(c)
+      out.write_char(' ')
+    } else {
+      out.write_char(c)
+    }
+    i += 1
+  }
+  out.to_string()
 }
 
 ///|
@@ -107,7 +162,7 @@ fn permission_denial_cause(reason : String) -> String {
     "classifier unavailable (not a settings issue)"
   } else if reason.has_prefix("Auto mode could not evaluate") {
     "no verdict (not a settings issue)"
-  } else if permission_regex("\\[([^\\]]+)\\]").execute(reason) is Some(m) &&
+  } else if permission_rule.execute(reason) is Some(m) &&
     m.group(1) is Some(rule) {
     "rule: \{rule}"
   } else {
@@ -117,14 +172,20 @@ fn permission_denial_cause(reason : String) -> String {
 
 ///|
 fn permission_replace_home(path : String, home : String) -> String {
-  match path.find(home) {
-    Some(i) => path[:i].to_owned() + "~" + path[i + home.length():].to_owned()
-    None => path
+  if path == home {
+    "~"
+  } else if path.strip_prefix(home + "/") is Some(rest) {
+    "~/\{rest}"
+  } else {
+    path
   }
 }
 
 ///|
 fn permission_path_prefix(path : String, home : String) -> String {
+  if path == home {
+    return "~"
+  }
   if path.find("/.git/") is Some(i) {
     return permission_replace_home(path[:i].to_owned() + "/.git", home)
   }

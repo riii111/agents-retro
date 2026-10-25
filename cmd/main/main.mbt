@@ -1,12 +1,22 @@
 ///|
 async fn main {
   guard @env.get_env_var("HOME") is Some(home) else { fail("HOME is not set") }
-  let args = @env.args()
-  if args.get(1) == Some("permissions") {
-    permissions_main(args[2:])
+  let now_ms = @env.now().reinterpret_as_int64()
+  let matches = app_command(home).parse()
+  if matches.subcommand is Some(("permissions", permissions)) {
+    let output = permission_report(permissions, home, now_ms)
+    @stdio.stdout.write(output)
     return
   }
-  let matches = @argparse.Command(
+  let days = @string.parse_int64(matches.values["days"][0])
+  let (patterns_path, out_dir) = message_paths(matches)
+  let since_ms = now_ms - days * 86_400_000L
+  message_report(home, since_ms, patterns_path, out_dir)
+}
+
+///|
+fn app_command(home : String) -> @argparse.Command {
+  @argparse.Command(
     "agents-retro",
     about="Collect the messages you typed to Claude Code and Codex",
     subcommands=[permission_command(home)],
@@ -15,18 +25,31 @@ async fn main {
       OptionArg(
         "patterns",
         long="patterns",
-        required=true,
-        about="JSON object of category name to regex",
+        about="JSON object of category name to regex; required for message reports",
       ),
-      OptionArg("out-dir", long="out-dir", required=true),
+      OptionArg("out-dir", long="out-dir", about="Required for message reports"),
     ],
-  ).parse()
-  let days = @string.parse_int64(matches.values["days"][0])
-  let patterns_path = matches.values["patterns"][0]
-  let out_dir = matches.values["out-dir"][0]
+  )
+}
 
-  let now_ms = @env.now().reinterpret_as_int64()
-  let since_ms = now_ms - days * 86_400_000L
+///|
+fn message_paths(matches : @argparse.Matches) -> (String, String) raise {
+  guard matches.values.get("patterns") is Some([patterns, ..]) else {
+    fail("--patterns is required for message reports")
+  }
+  guard matches.values.get("out-dir") is Some([out_dir, ..]) else {
+    fail("--out-dir is required for message reports")
+  }
+  (patterns, out_dir)
+}
+
+///|
+async fn message_report(
+  home : String,
+  since_ms : Int64,
+  patterns_path : String,
+  out_dir : String,
+) -> Unit {
   let today = local_date()
   let patterns = @retro.parse_patterns(read_text(patterns_path))
   let since = @retro.utc_isoformat(since_ms)
@@ -77,8 +100,12 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
     }
     let project = basename(dirname(path))
     let session = stem(basename(path))
-    each_candidate_line(path, line => {
-      if @retro.claude_message(line, project~, session~) is Some(row) {
+    each_line(path, line => {
+      if !@retro.is_candidate_line(line) {
+        return
+      }
+      if @retro.claude_message(@utf8.decode_lossy(line), project~, session~)
+        is Some(row) {
         rows.push(row)
       }
     })
@@ -90,8 +117,11 @@ async fn read_logs(home : String, since_ms : Int64) -> Array[@retro.RawMessage] 
     let reader = @retro.CodexSession::new(
       @retro.take_last_chars(stem(basename(path)), 36),
     )
-    each_candidate_line(path, line => {
-      if reader.read_line(line) is Some(row) {
+    each_line(path, line => {
+      if !@retro.is_candidate_line(line) {
+        return
+      }
+      if reader.read_line(@utf8.decode_lossy(line)) is Some(row) {
         rows.push(row)
       }
     })
@@ -185,15 +215,9 @@ async fn modified_before(path : String, ms : Int64) -> Bool {
 }
 
 ///|
-/// Hands candidate lines to `handle` one at a time while reading the file in chunks, so at most one decoded line stays in memory.
-async fn each_candidate_line(path : String, handle : (String) -> Unit) -> Unit {
+async fn each_line(path : String, handle : (BytesView) -> Unit) -> Unit {
   let file = @fs.open(path, mode=ReadOnly)
   defer file.close()
-  let keep = (line : BytesView) => {
-    if @retro.is_candidate_line(line) {
-      handle(@utf8.decode_lossy(line))
-    }
-  }
   let partial = Buffer()
   while file.read_some(max_len=1 << 20) is Some(chunk) {
     let mut start = 0
@@ -202,10 +226,10 @@ async fn each_candidate_line(path : String, handle : (String) -> Unit) -> Unit {
         continue
       }
       if partial.is_empty() {
-        keep(chunk[start:i])
+        handle(chunk[start:i])
       } else {
         partial.write_bytesview(chunk[start:i])
-        keep(partial.to_bytes())
+        handle(partial.to_bytes())
         partial.reset()
       }
       start = i + 1
@@ -213,7 +237,7 @@ async fn each_candidate_line(path : String, handle : (String) -> Unit) -> Unit {
     partial.write_bytesview(chunk[start:])
   }
   if !partial.is_empty() {
-    keep(partial.to_bytes())
+    handle(partial.to_bytes())
   }
 }
 

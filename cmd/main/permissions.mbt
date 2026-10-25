@@ -1,24 +1,27 @@
 ///|
-async fn permissions_main(args : ArrayView[String]) -> Unit {
-  guard @env.get_env_var("HOME") is Some(home) else { fail("HOME is not set") }
-  let matches = permission_command(home).parse(argv=args)
+async fn permission_report(
+  matches : @argparse.Matches,
+  home : String,
+  now_ms : Int64,
+) -> String {
   let days = @string.parse_int64(matches.values["days"][0])
   let limit = @string.parse_int(matches.values["limit"][0])
-  let since_ms = @env.now().reinterpret_as_int64() - days * 86_400_000L
+  guard days >= 0L else { fail("--days must be non-negative") }
+  guard limit >= 0 else { fail("--limit must be non-negative") }
+  let since_ms = now_ms - days * 86_400_000L
   let report = @retro.PermissionReport::new(home~)
   let records = permission_records(matches.values["projects"][0], since_ms)
   for path in records {
-    report.scan_session(read_permission_text(path))
+    let session = report.start_session()
+    each_line(path, line => session.read_line(@utf8.decode_lossy(line)))
   }
   let events = matches.values["events"][0]
   if @fs.exists(events) {
-    report.scan_events(
-      read_permission_text(events),
-      since_ms=@env.now().reinterpret_as_int64() - days * 86_400_000L,
-    )
+    each_line(events, line => {
+      report.read_event(@utf8.decode_lossy(line), since_ms~)
+    })
   }
-  let output = report.format(days~, records=records.length(), limit~)
-  println(output[:output.length() - 1])
+  report.format(days~, records=records.length(), limit~)
 }
 
 ///|
@@ -69,7 +72,9 @@ async fn permission_walk(
   let names = @fs.readdir(root, include_hidden=true)
   for name in names {
     let path = "\{root}/\{name}"
-    if name.has_suffix(".jsonl") && !modified_before(path, since_ms) {
+    if name.has_suffix(".jsonl") &&
+      @fs.kind(path, follow_symlink=true) is Regular &&
+      !modified_before(path, since_ms) {
       records.push(path)
     }
   }
@@ -79,25 +84,4 @@ async fn permission_walk(
       permission_walk(path, since_ms, records)
     }
   }
-}
-
-///|
-/// Python reads these logs with errors="ignore"; valid replacement characters must survive.
-async fn read_permission_text(path : String) -> String {
-  let bytes = @fs.read_file(path).binary()
-  let out = StringBuilder()
-  let mut rest : BytesView = bytes
-  while !rest.is_empty() {
-    try {
-      out.write_string(@utf8.decode(rest))
-      break
-    } catch {
-      @utf8.Malformed(suffix) => {
-        let valid = rest.length() - suffix.length()
-        out.write_string(@utf8.decode_lossy(rest[:valid]))
-        rest = suffix[1:]
-      }
-    }
-  }
-  out.to_string()
 }

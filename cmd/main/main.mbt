@@ -5,6 +5,7 @@ async fn main {
   let matches = command(home).parse()
 
   match matches.subcommand {
+    Some(("hooks", hooks)) => @hooks.run(hooks, now_ms)
     Some(("interrupts", interrupts)) => @interrupts.run(interrupts, now_ms)
     Some(("messages", messages)) => @messages.run(messages, home, now_ms)
     Some(("permissions", permissions)) =>
@@ -28,6 +29,7 @@ fn command(home : String) -> @argparse.Command {
     arg_required_else_help=true,
     subcommand_required=true,
     subcommands=[
+      @hooks.command(home),
       @interrupts.command(home),
       @messages.command(),
       @permissions.command(home),

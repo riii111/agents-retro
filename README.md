@@ -47,6 +47,14 @@ agents-retro tokens --days 7 --limit 15
 
 Prints JSON showing which projects, sessions, and preceding tool calls used the most tokens, and which tool results were largest. It covers Claude Code and Codex, including subagent logs, and reports the cache read ratio for each session.
 
+## Skill usage
+
+```sh
+agents-retro skills --days 7 --limit 15
+```
+
+Prints JSON counting how often each skill and subagent type was called, and lists installed skills in `~/.claude/skills` and `~/.codex/skills` that were never used. Subagent types come from Claude Code logs only, because Codex logs do not record them.
+
 ## Agent skills
 
 Copy either skill directory into your agent's skills directory, or reference it from your own skill:

@@ -1,0 +1,15 @@
+import {
+  "riii111/agents-retro/retro/interrupts" @analysis,
+  "riii111/agents-retro/cmd/logfiles",
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+  "moonbitlang/async/stdio",
+}
+
+supported_targets = "+native"
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+} for "wbtest"

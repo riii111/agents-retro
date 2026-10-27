@@ -47,6 +47,14 @@ agents-retro tokens --days 7 --limit 15
 
 Prints JSON showing which projects, sessions, and preceding tool calls used the most tokens, and which tool results were largest. It covers Claude Code and Codex, including subagent logs, and reports the cache read ratio for each session.
 
+## Interruptions
+
+```sh
+agents-retro interrupts --days 7 --limit 15
+```
+
+Prints JSON counting the times you interrupted Claude Code or rejected a tool call, by project, session, and the tool call that was running. Subagent logs are included. Codex logs are not read.
+
 ## Failed tool calls
 
 ```sh

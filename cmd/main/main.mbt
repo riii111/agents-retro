@@ -13,7 +13,6 @@ async fn main {
 }
 
 ///|
-/// Keep in sync with `version` in `moon.mod`.
 const VERSION = "0.1.0"
 
 ///|

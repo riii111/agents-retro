@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/string",
   "riii111/agents-retro/retro/records",
+  "riii111/agents-retro/retro/shell",
   "riii111/agents-retro/retro/whitespace",
 }

@@ -57,7 +57,7 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
       }
 
       let call : Call = {
-        head: command_head(@records.string_field(input, "command")),
+        head: @shell.command_head(@records.string_field(input, "command")),
         unsandboxed: input.get("dangerouslyDisableSandbox") is Some(True),
       }
       self.calls[id] = call
@@ -71,7 +71,7 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
         continue
       }
 
-      let output = output_text(item.get("content"))
+      let output = @records.content_text(item.get("content"))
       for m in network.find(output) {
         if m.group(1) is Some(host) {
           report.hosts.add(host.to_owned())
@@ -98,23 +98,6 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
         }
       }
     }
-  }
-}
-
-///|
-fn output_text(content : Json?) -> String {
-  match content {
-    Some(String(s)) => s
-    Some(Array(items)) =>
-      items
-      .filter_map(item => {
-        match item {
-          Object(item) => Some(@records.string_field(item, "text"))
-          _ => None
-        }
-      })
-      .join("\n")
-    _ => ""
   }
 }
 

@@ -34,7 +34,7 @@ pub fn Report::read_event(
       } else {
         shape
       },
-      command_head(command),
+      @shell.command_head(command),
     )
   } else {
     let tool = @records.string_field(record, "tool")

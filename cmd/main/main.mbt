@@ -13,7 +13,6 @@ async fn main {
 }
 
 ///|
-/// A test checks that this equals `version` in `moon.mod`.
 const VERSION = "0.1.0"
 
 ///|

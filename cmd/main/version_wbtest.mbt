@@ -1,22 +1,23 @@
 ///|
 async test "VERSION matches the version in moon.mod" {
-  guard @env.current_dir() is Some(cwd) else { fail("current dir is unknown") }
-  let manifest = find_module_manifest(cwd)
+  let manifest = find_module_manifest(@env.args()[0])
   assert_eq(VERSION, module_version(@fs.read_file(manifest).text()))
 }
 
 ///|
-async fn find_module_manifest(start : String) -> String {
-  let mut dir = start
+/// The test binary is built under the module's `_build`, so the module root is
+/// found from its path instead of the working directory.
+async fn find_module_manifest(executable : String) -> String {
+  let mut dir = @fs.realpath(executable)
   while true {
+    guard dir.rev_find("/") is Some(index) && index > 0 else {
+      fail("moon.mod not found above \{executable}")
+    }
+    dir = dir[:index].to_owned()
     let candidate = "\{dir}/moon.mod"
     if @fs.exists(candidate) {
       return candidate
     }
-    guard dir.rev_find("/") is Some(index) && index > 0 else {
-      fail("moon.mod not found above \{start}")
-    }
-    dir = dir[:index].to_owned()
   }
   fail("unreachable")
 }

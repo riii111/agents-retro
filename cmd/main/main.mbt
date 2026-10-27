@@ -5,18 +5,25 @@ async fn main {
   let matches = command(home).parse()
 
   match matches.subcommand {
+    Some(("messages", messages)) => @messages.run(messages, home, now_ms)
     Some(("permissions", permissions)) =>
       @permissions.run(permissions, home, now_ms)
-    _ => @messages.run(matches, home, now_ms)
+    _ => fail("a subcommand is required")
   }
 }
+
+///|
+/// Keep in sync with `version` in `moon.mod`.
+const VERSION = "0.1.0"
 
 ///|
 fn command(home : String) -> @argparse.Command {
   @argparse.Command(
     "agents-retro",
-    about="Collect the messages you typed to Claude Code and Codex",
-    options=@messages.options(),
-    subcommands=[@permissions.command(home)],
+    about="Review what keeps interrupting your work with Claude Code and Codex",
+    version=VERSION,
+    arg_required_else_help=true,
+    subcommand_required=true,
+    subcommands=[@messages.command(), @permissions.command(home)],
   )
 }

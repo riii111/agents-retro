@@ -5,7 +5,8 @@ pub async fn run(
   now_ms : Int64,
 ) -> Unit {
   let days = @string.parse_int64(matches.values["days"][0])
-  let (patterns_path, out_dir) = paths(matches)
+  let patterns_path = matches.values["patterns"][0]
+  let out_dir = matches.values["out-dir"][0]
   let since_ms = now_ms - days * 86_400_000L
 
   let today = local_date()

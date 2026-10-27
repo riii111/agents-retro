@@ -55,6 +55,14 @@ agents-retro hooks --days 7 --limit 15
 
 Prints JSON showing which Claude Code hook messages, tools, and command names blocked the most operations, including blocks in subagents. Use it to find rules the agent keeps breaking. Codex logs do not record hook blocks.
 
+## Interruptions
+
+```sh
+agents-retro interrupts --days 7 --limit 15
+```
+
+Prints JSON counting the times you interrupted Claude Code or rejected a tool call, by project, session, and the tool call that was running. Subagent logs are included. Codex logs are not read.
+
 ## Agent skills
 
 Copy either skill directory into your agent's skills directory, or reference it from your own skill:

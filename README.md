@@ -24,7 +24,7 @@ Add `~/.local/bin` to your `PATH` if needed.
 Create `patterns.json` from [the example](skills/agents-retro/references/patterns.example.json), then run:
 
 ```sh
-agents-retro --days 7 --patterns patterns.json --out-dir ~/retro
+agents-retro messages --days 7 --patterns patterns.json --out-dir ~/retro
 ```
 
 Each pattern maps a category to a regular expression. Use `[[:digit:]]`, `[[:space:]]`, and `[[:word:]]` instead of `\d`, `\s`, and `\w`, and write `-` inside brackets as `\-`.

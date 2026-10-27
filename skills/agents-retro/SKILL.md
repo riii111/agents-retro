@@ -21,7 +21,7 @@ The regex syntax differs from Python and PCRE: `\d`, `\s`, and `\w` are not avai
 
 1. Run the report.
    ```sh
-   agents-retro --days <days> --patterns <patterns.json> --out-dir <dir>
+   agents-retro messages --days <days> --patterns <patterns.json> --out-dir <dir>
    ```
    It prints counts per pattern with the change since the previous run and writes these files, named by the local date:
    - `<date>-messages.tsv`: every owner message, one per line; columns are id, time, app, role, session, working directory, and text, and the id equals the line number.

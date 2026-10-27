@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn options() -> Array[@argparse.OptionArg]
+pub fn command() -> @argparse.Command
 
 pub async fn run(@argparse.Matches, String, Int64) -> Unit
 

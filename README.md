@@ -39,45 +39,23 @@ agents-retro permissions --days 7 --limit 15
 
 See recurring Claude Code permission prompts, auto mode denials, and sandbox failures by command, path, or host. Prompts and denials require [permission event recording](skills/permission-analyze/references/recording.md); sandbox failures use existing session logs. Codex approval events are outside its scope.
 
-## Token usage
+## Detailed breakdowns
+
+These commands print JSON, mainly for agents that back up improvement proposals. Each takes `--days` and `--limit`, like `permissions`.
 
 ```sh
 agents-retro tokens --days 7 --limit 15
 ```
 
-Prints JSON showing which projects, sessions, and preceding tool calls used the most tokens, and which tool results were largest. It covers Claude Code and Codex, including subagent logs, and reports the cache read ratio for each session.
+| Command | What it counts |
+| --- | --- |
+| `tokens` | Token use by project, session, and preceding tool call, plus the largest tool results |
+| `hooks` | Operations blocked by hooks, by message, tool, and command |
+| `skills` | Skill and subagent calls, plus installed skills never used |
+| `interrupts` | Your interruptions and rejected tool calls, by project and session |
+| `tools` | Failed tool calls by tool and command, including repeated failures |
 
-## Hook blocks
-
-```sh
-agents-retro hooks --days 7 --limit 15
-```
-
-Prints JSON showing which Claude Code hook messages, tools, and command names blocked the most operations, including blocks in subagents. Use it to find rules the agent keeps breaking. Codex logs do not record hook blocks.
-
-## Skill usage
-
-```sh
-agents-retro skills --days 7 --limit 15
-```
-
-Prints JSON counting how often each skill and subagent type was called, and lists installed skills in `~/.claude/skills` and `~/.codex/skills` that were never used. Subagent types come from Claude Code logs only, because Codex logs do not record them.
-
-## Interruptions
-
-```sh
-agents-retro interrupts --days 7 --limit 15
-```
-
-Prints JSON counting the times you interrupted Claude Code or rejected a tool call, by project, session, and the tool call that was running. Subagent logs are included. Codex logs are not read.
-
-## Failed tool calls
-
-```sh
-agents-retro tools --days 7 --limit 15
-```
-
-Prints JSON counting failed Claude Code tool calls by tool and, for Bash, by command, including how often the same call failed again in one session. Refusals by hooks or by you are left out. Codex logs do not mark failed calls, so they are not read.
+Subagent logs are included. `tokens` and `skills` also read Codex logs; the others read Claude Code logs only.
 
 ## Agent skills
 

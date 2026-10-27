@@ -18,19 +18,18 @@ pub fn Report::new() -> Report {
 
 ///|
 /// Resumed sessions copy earlier history, so a tool use id is counted once.
-/// A failure is a repeat when the same call already failed under `scope`.
+/// A failure is a repeat when the same call already failed in the same session.
 fn Report::add_failure(
   self : Report,
   id : String,
   call : Call,
-  scope~ : String,
   session~ : String,
   sidechain~ : Bool,
 ) -> Unit {
   guard !id.is_empty() && self.seen.add_and_check(id) else { return }
 
   let repeat = !self.seen_calls.add_and_check(
-    "\{scope}\n\{call.tool.name}\n\{call.input}",
+    "\{session}\n\{call.tool.name}\n\{call.input}",
   )
   self.total.add(session, sidechain~, repeat~)
   if !self.tools.contains(call.tool) {

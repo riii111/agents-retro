@@ -1,6 +1,11 @@
 ///|
-fn use_line(id : String, name : String, input : String) -> String {
-  "{\"type\":\"assistant\",\"sessionId\":\"s1\",\"isSidechain\":false,\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"\{id}\",\"name\":\"\{name}\",\"input\":\{input}}]}}"
+fn use_line(
+  id : String,
+  name : String,
+  input : String,
+  session~ : String = "s1",
+) -> String {
+  "{\"type\":\"assistant\",\"sessionId\":\"\{session}\",\"isSidechain\":false,\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"\{id}\",\"name\":\"\{name}\",\"input\":\{input}}]}}"
 }
 
 ///|
@@ -9,8 +14,9 @@ fn result_line(
   content : String,
   error~ : Bool,
   sidechain~ : Bool,
+  session~ : String = "s1",
 ) -> String {
-  "{\"type\":\"user\",\"sessionId\":\"s1\",\"isSidechain\":\{sidechain},\"message\":{\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"\{id}\",\"is_error\":\{error},\"content\":\"\{content}\"}]}}"
+  "{\"type\":\"user\",\"sessionId\":\"\{session}\",\"isSidechain\":\{sidechain},\"message\":{\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"\{id}\",\"is_error\":\{error},\"content\":\"\{content}\"}]}}"
 }
 
 ///|
@@ -98,27 +104,67 @@ test "report counts failed calls by tool and command head and skips refusals" {
 }
 
 ///|
-test "report counts a tool use id once across files and repeats only within a file" {
-  let report = @tools.Report::new()
-  let lines = [
-    use_line("t1", "Bash", "{\"command\":\"make\"}"),
-    result_line("t1", "Exit code 1", error=true, sidechain=false),
-  ]
-  for session in ["a", "b"] {
-    let log = report.claude_log(session~)
-    for line in lines {
-      log.read_line(line)
-    }
-  }
-  let other = report.claude_log(session="c")
-  other.read_line(use_line("t9", "Bash", "{\"command\":\"make\"}"))
-  other.read_line(result_line("t9", "Exit code 1", error=true, sidechain=false))
+fn read_failure(
+  report : @tools.Report,
+  file~ : String,
+  id~ : String,
+  session~ : String,
+  sidechain~ : Bool,
+) -> Unit {
+  let log = report.claude_log(session=file)
+  log.read_line(use_line(id, "Bash", "{\"command\":\"make\"}", session~))
+  log.read_line(
+    result_line(id, "Exit code 1", error=true, sidechain~, session~),
+  )
+}
 
-  let json = @json.parse(report.to_json(days=7L, records=3, limit=15))
+///|
+test "report counts a repeated failure across the conversation and its subagent" {
+  let report = @tools.Report::new()
+  read_failure(report, file="s1", id="t1", session="s1", sidechain=false)
+  read_failure(report, file="agent-a", id="t2", session="s1", sidechain=true)
+
   inspect(
-    json.stringify(),
+    report.to_json(days=7L, records=2, limit=15),
     content=(
-      #|{"days":7,"records":3,"total":{"failures":2,"repeats":0,"sidechain_failures":0,"sessions":1},"tools":[{"tool":"Bash","command":"make","failures":2,"repeats":0,"sidechain_failures":0,"sessions":1}]}
+      #|{"days":7,"records":2,"total":{"failures":2,"repeats":1,"sidechain_failures":1,"sessions":1},"tools":[{"tool":"Bash","command":"make","failures":2,"repeats":1,"sidechain_failures":1,"sessions":1}]}
+      #|
+    ),
+  )
+}
+
+///|
+test "report does not count the same call in different sessions as a repeat" {
+  let report = @tools.Report::new()
+  read_failure(report, file="s1", id="t1", session="s1", sidechain=false)
+  read_failure(report, file="s2", id="t2", session="s2", sidechain=false)
+
+  inspect(
+    report.to_json(days=7L, records=2, limit=15),
+    content=(
+      #|{"days":7,"records":2,"total":{"failures":2,"repeats":0,"sidechain_failures":0,"sessions":2},"tools":[{"tool":"Bash","command":"make","failures":2,"repeats":0,"sidechain_failures":0,"sessions":2}]}
+      #|
+    ),
+  )
+}
+
+///|
+test "report counts a copied tool use id once" {
+  let report = @tools.Report::new()
+  read_failure(report, file="s1", id="t1", session="s1", sidechain=false)
+  read_failure(
+    report,
+    file="s1-resumed",
+    id="t1",
+    session="s1",
+    sidechain=false,
+  )
+
+  inspect(
+    report.to_json(days=7L, records=2, limit=15),
+    content=(
+      #|{"days":7,"records":2,"total":{"failures":1,"repeats":0,"sidechain_failures":0,"sessions":1},"tools":[{"tool":"Bash","command":"make","failures":1,"repeats":0,"sidechain_failures":0,"sessions":1}]}
+      #|
     ),
   )
 }

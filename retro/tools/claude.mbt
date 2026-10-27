@@ -88,7 +88,6 @@ fn ClaudeLog::read_tool_results(
     self.report.add_failure(
       id,
       call,
-      scope=self.fallback_session,
       session~,
       sidechain=record.get("isSidechain") is Some(True),
     )

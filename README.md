@@ -53,7 +53,7 @@ Prints JSON showing which projects, sessions, and preceding tool calls used the 
 agents-retro tools --days 7 --limit 15
 ```
 
-Prints JSON counting failed Claude Code tool calls by tool and, for Bash, by command, including how often the same call failed again in one log. Refusals by hooks or by you are left out. Codex logs do not mark failed calls, so they are not read.
+Prints JSON counting failed Claude Code tool calls by tool and, for Bash, by command, including how often the same call failed again in one session. Refusals by hooks or by you are left out. Codex logs do not mark failed calls, so they are not read.
 
 ## Agent skills
 

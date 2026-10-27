@@ -47,6 +47,14 @@ agents-retro tokens --days 7 --limit 15
 
 Prints JSON showing which projects, sessions, and preceding tool calls used the most tokens, and which tool results were largest. It covers Claude Code and Codex, including subagent logs, and reports the cache read ratio for each session.
 
+## Failed tool calls
+
+```sh
+agents-retro tools --days 7 --limit 15
+```
+
+Prints JSON counting failed Claude Code tool calls by tool and, for Bash, by command, including how often the same call failed again in one log. Refusals by hooks or by you are left out. Codex logs do not mark failed calls, so they are not read.
+
 ## Agent skills
 
 Copy either skill directory into your agent's skills directory, or reference it from your own skill:

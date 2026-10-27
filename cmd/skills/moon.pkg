@@ -1,9 +1,8 @@
 import {
   "riii111/agents-retro/retro/skills" @analysis,
   "riii111/agents-retro/cmd/logfiles",
+  "riii111/agents-retro/cmd/options",
   "moonbitlang/core/argparse",
-  "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/string",
   "moonbitlang/async/fs",
   "moonbitlang/async/stdio",
 }

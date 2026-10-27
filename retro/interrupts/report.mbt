@@ -34,13 +34,10 @@ fn Report::add_event(
   guard id.is_empty() || self.seen.add_and_check(id) else { return }
 
   self.total.add(event, sidechain~)
-  tally_of(self.projects, project).add(event, sidechain~)
-  tally_of(self.tools, tool).add(event, sidechain~)
+  self.projects.get_or_init(project, Tally::new).add(event, sidechain~)
+  self.tools.get_or_init(tool, Tally::new).add(event, sidechain~)
 
-  if !self.project_sessions.contains(project) {
-    self.project_sessions[project] = Set([])
-  }
-  self.project_sessions[project].add(session)
+  self.project_sessions.get_or_init(project, () => Set([])).add(session)
 
   let key = "\{session}/\{sidechain}"
   if !self.sessions.contains(key) {
@@ -54,14 +51,5 @@ fn Report::add_event(
   }
   let entry = self.sessions[key]
   entry.tally.add(event, sidechain~)
-  tally_of(entry.tools, tool).add(event, sidechain~)
-}
-
-///|
-fn[K : Hash + Eq] tally_of(tallies : Map[K, Tally], key : K) -> Tally {
-  if !tallies.contains(key) {
-    tallies[key] = Tally::new()
-  }
-
-  tallies[key]
+  entry.tools.get_or_init(tool, Tally::new).add(event, sidechain~)
 }

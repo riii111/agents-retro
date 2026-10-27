@@ -5,10 +5,8 @@ async fn read_sessions(
 ) -> Unit {
   for path in paths {
     let session = report.start_session()
-    @logfiles.each_line(path, line => {
-      if @analysis.is_candidate_line(line) {
-        session.read_line(@utf8.decode_lossy(line))
-      }
+    @logfiles.each_candidate(path, @analysis.is_candidate_line, line => {
+      session.read_line(line)
     })
   }
 }

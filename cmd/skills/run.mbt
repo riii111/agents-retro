@@ -5,21 +5,26 @@ pub async fn run(matches : @argparse.Matches, now_ms : Int64) -> Unit {
 
 ///|
 async fn report(matches : @argparse.Matches, now_ms : Int64) -> String {
-  let (days, limit) = report_options(matches)
+  let window = @options.Window::parse(matches, now_ms)
 
-  let since_ms = now_ms - days * 86_400_000L
   let report = @analysis.Report::new()
-  let claude = @logfiles.jsonl_files(matches.values["projects"][0], since_ms)
-  let codex = @logfiles.jsonl_files(matches.values["sessions"][0], since_ms)
+  let claude = @logfiles.jsonl_files(
+    matches.values["projects"][0],
+    window.since_ms,
+  )
+  let codex = @logfiles.jsonl_files(
+    matches.values["sessions"][0],
+    window.since_ms,
+  )
 
-  let since = @analysis.utc_timestamp(since_ms)
+  let since = @analysis.utc_timestamp(window.since_ms)
   read_claude_logs(claude, report, since~)
   read_codex_logs(codex, report, since~)
 
   report.to_json(
-    days~,
+    days=window.days,
     records=claude.length() + codex.length(),
-    limit~,
+    limit=window.limit,
     claude_skills=installed_skills(matches.values["claude-skills"][0]),
     codex_skills=installed_skills(matches.values["codex-skills"][0]),
   )

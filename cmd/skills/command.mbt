@@ -4,40 +4,16 @@ pub fn command(home : String) -> @argparse.Command {
     "skills",
     about="Summarize skill and subagent use and list unused skills as JSON",
     options=[
-      OptionArg(
-        "days",
-        long="days",
-        default_values=["7"],
-        allow_hyphen_values=true,
-      ),
-      OptionArg(
-        "limit",
-        long="limit",
-        default_values=["15"],
-        allow_hyphen_values=true,
-      ),
-      OptionArg("projects", long="projects", default_values=[
-        "\{home}/.claude/projects",
-      ]),
-      OptionArg("sessions", long="sessions", default_values=[
-        "\{home}/.codex/sessions",
-      ]),
-      OptionArg("claude-skills", long="claude-skills", default_values=[
+      @options.days(),
+      @options.limit(),
+      @options.projects(home),
+      @options.sessions(home),
+      @argparse.OptionArg("claude-skills", long="claude-skills", default_values=[
         "\{home}/.claude/skills",
       ]),
-      OptionArg("codex-skills", long="codex-skills", default_values=[
+      @argparse.OptionArg("codex-skills", long="codex-skills", default_values=[
         "\{home}/.codex/skills",
       ]),
     ],
   )
-}
-
-///|
-fn report_options(matches : @argparse.Matches) -> (Int64, Int32) raise {
-  let days = @string.parse_int64(matches.values["days"][0])
-  let limit = @string.parse_int(matches.values["limit"][0])
-  guard days >= 0L else { fail("--days must be non-negative") }
-  guard limit >= 0 else { fail("--limit must be non-negative") }
-
-  (days, limit)
 }

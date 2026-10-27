@@ -2,11 +2,15 @@
 package "riii111/agents-retro/cmd/logfiles"
 
 // Values
+pub async fn each_candidate(String, (BytesView) -> Bool, (String) -> Unit) -> Unit
+
 pub async fn each_line(String, (BytesView) -> Unit) -> Unit
 
 pub async fn jsonl_files(String, Int64) -> Array[String]
 
 pub async fn modified_before(String, Int64) -> Bool
+
+pub fn stem(String) -> String
 
 // Errors
 

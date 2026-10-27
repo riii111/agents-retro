@@ -12,3 +12,26 @@ async test "chunked JSONL reader preserves long Unicode records and the final li
 
   assert_eq(lines, [long, "", "last"])
 }
+
+///|
+async test "candidate reader skips lines rejected by the pre-filter" {
+  let dir = @fs.tmpdir(prefix="candidate-jsonl")
+  defer @fs.rmdir(dir, recursive=true)
+  let path = "\{dir}/session.jsonl"
+  @fs.write_file(path, "keep 1\nskip\nkeep 2\n")
+
+  let lines = []
+
+  @logfiles.each_candidate(path, line => line.find(b"keep") is Some(_), line => {
+    lines.push(line)
+  })
+
+  assert_eq(lines, ["keep 1", "keep 2"])
+}
+
+///|
+test "stem drops the directory and the jsonl suffix" {
+  assert_eq(@logfiles.stem("/a/b/s1.jsonl"), "s1")
+  assert_eq(@logfiles.stem("s2.jsonl"), "s2")
+  assert_eq(@logfiles.stem("/a/notes.txt"), "notes.txt")
+}

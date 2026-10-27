@@ -37,6 +37,35 @@ pub async fn each_line(path : String, handle : (BytesView) -> Unit) -> Unit {
 }
 
 ///|
+/// Hands `read` the decoded lines that pass the cheap `is_candidate` pre-filter,
+/// so the JSON parser only sees lines that can matter.
+pub async fn each_candidate(
+  path : String,
+  is_candidate : (BytesView) -> Bool,
+  read : (String) -> Unit,
+) -> Unit {
+  each_line(path, line => {
+    if is_candidate(line) {
+      read(@utf8.decode_lossy(line))
+    }
+  })
+}
+
+///|
+/// File name without directory and `.jsonl` suffix, which is the session id.
+pub fn stem(path : String) -> String {
+  let name = match path.rev_find("/") {
+    Some(i) => path[i + 1:].to_owned()
+    None => path
+  }
+
+  match name.strip_suffix(".jsonl") {
+    Some(s) => s.to_owned()
+    None => name
+  }
+}
+
+///|
 pub async fn jsonl_files(root : String, since_ms : Int64) -> Array[String] {
   let files = []
   if !@fs.exists(root) || @fs.kind(root, follow_symlink=true) != Directory {

@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/agents-retro/retro/jsonreport"
+
+// Values
+pub fn number(Int64) -> Json
+
+pub fn object(Array[(String, Json)]) -> Json
+
+pub fn[T] top(Array[T], Int32, (T) -> Int64, (T) -> Json) -> Json
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

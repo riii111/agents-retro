@@ -37,14 +37,11 @@ fn Report::add_response(
   guard !id.is_empty() && self.seen.add_and_check(id) else { return }
 
   self.total.add(usage, sidechain~)
-  tally_of(self.projects, project).add(usage, sidechain~)
-  tally_of(self.previous_tools, previous).add(usage, sidechain~)
+  self.projects.get_or_init(project, Tally::new).add(usage, sidechain~)
+  self.previous_tools.get_or_init(previous, Tally::new).add(usage, sidechain~)
 
   let session_key = "\{source}/\{session}"
-  if !self.project_sessions.contains(project) {
-    self.project_sessions[project] = Set([])
-  }
-  self.project_sessions[project].add(session_key)
+  self.project_sessions.get_or_init(project, () => Set([])).add(session_key)
 
   let key = "\{session_key}/\{sidechain}"
   if !self.sessions.contains(key) {
@@ -61,19 +58,7 @@ fn Report::add_response(
 
 ///|
 fn Report::add_result(self : Report, tool : Tool, chars : Int32) -> Unit {
-  if !self.result_sizes.contains(tool) {
-    self.result_sizes[tool] = ResultSize::new()
-  }
-  let size = self.result_sizes[tool]
+  let size = self.result_sizes.get_or_init(tool, ResultSize::new)
   size.results += 1
   size.chars += chars.to_int64()
-}
-
-///|
-fn[K : Hash + Eq] tally_of(tallies : Map[K, Tally], key : K) -> Tally {
-  if !tallies.contains(key) {
-    tallies[key] = Tally::new()
-  }
-
-  tallies[key]
 }

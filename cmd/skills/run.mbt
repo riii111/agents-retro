@@ -12,8 +12,9 @@ async fn report(matches : @argparse.Matches, now_ms : Int64) -> String {
   let claude = @logfiles.jsonl_files(matches.values["projects"][0], since_ms)
   let codex = @logfiles.jsonl_files(matches.values["sessions"][0], since_ms)
 
-  read_claude_logs(claude, report)
-  read_codex_logs(codex, report)
+  let since = @analysis.utc_timestamp(since_ms)
+  read_claude_logs(claude, report, since~)
+  read_codex_logs(codex, report, since~)
 
   report.to_json(
     days~,

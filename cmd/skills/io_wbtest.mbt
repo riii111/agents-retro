@@ -20,19 +20,19 @@ async test "skills reads Claude Code and Codex logs and lists unused installed s
   @fs.write_file(
     "\{projects}/p/s1.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","isSidechain":false,"message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Skill","input":{"skill":"used"}}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":false,"message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Skill","input":{"skill":"used"}}]}}
     ),
   )
   @fs.write_file(
     "\{projects}/p/s1/subagents/agent-a.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","isSidechain":true,"message":{"id":"m2","content":[{"type":"tool_use","id":"t2","name":"Agent","input":{"subagent_type":"Explore"}}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":true,"message":{"id":"m2","content":[{"type":"tool_use","id":"t2","name":"Agent","input":{"subagent_type":"Explore"}}]}}
     ),
   )
   @fs.write_file(
     "\{sessions}/2026/10/28/rollout-c1.jsonl",
     (
-      #|{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"[$idle-codex](/x/idle-codex/SKILL.md)"}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"[$idle-codex](/x/idle-codex/SKILL.md)"}]}}
     ),
   )
   let matches = command(dir).parse(argv=[
@@ -80,4 +80,30 @@ async test "skills rejects negative numeric options and preserves zero" {
 
     ignore(report(options, 0L))
   }
+}
+
+///|
+async test "skills leaves out calls dated before the period" {
+  let dir = @fs.tmpdir(prefix="skills-period")
+  defer @fs.rmdir(dir, recursive=true)
+  let projects = "\{dir}/projects"
+  @fs.mkdir("\{projects}/p", recursive=true)
+  @fs.write_file(
+    "\{projects}/p/s1.jsonl",
+    (
+      #|{"timestamp":"2026-10-01T00:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":false,"message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Skill","input":{"skill":"old"}}]}}
+      #|{"timestamp":"2026-10-27T00:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":false,"message":{"id":"m2","content":[{"type":"tool_use","id":"t2","name":"Skill","input":{"skill":"fresh"}}]}}
+    ),
+  )
+  let matches = command(dir).parse(argv=[
+    "--projects",
+    projects,
+    "--sessions",
+    "\{dir}/missing",
+  ])
+
+  let output = report(matches, 1_793_143_854_000L)
+
+  assert_true(output.contains("\"skill\":\"fresh\""))
+  assert_false(output.contains("\"skill\":\"old\""))
 }

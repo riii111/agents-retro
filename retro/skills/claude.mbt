@@ -2,6 +2,7 @@
 pub struct ClaudeLog {
   priv report : Report
   priv fallback_session : String
+  priv since : String
 }
 
 ///|
@@ -12,14 +13,22 @@ pub fn is_claude_candidate(line : BytesView) -> Bool {
 }
 
 ///|
-pub fn Report::claude_log(self : Report, session~ : String) -> ClaudeLog {
-  { report: self, fallback_session: session, }
+pub fn Report::claude_log(
+  self : Report,
+  session~ : String,
+  since~ : String,
+) -> ClaudeLog {
+  { report: self, fallback_session: session, since, }
 }
 
 ///|
 pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
   guard @records.parse_object(line) is Some(record) &&
     record.get("message") is Some(Object(message)) else {
+    return
+  }
+
+  guard in_period(@records.string_field(record, "timestamp"), since=self.since) else {
     return
   }
 
@@ -101,7 +110,9 @@ fn ClaudeLog::read_user(
   }
 
   for text in texts {
-    guard slash_command(text) is Some(name) else { continue }
+    guard slash_command(text) is Some(name) && !builtin_commands.contains(name) else {
+      continue
+    }
 
     self.report.add_skill(
       source="claude",

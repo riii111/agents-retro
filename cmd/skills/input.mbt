@@ -2,9 +2,10 @@
 async fn read_claude_logs(
   paths : Array[String],
   report : @analysis.Report,
+  since~ : String,
 ) -> Unit {
   for path in paths {
-    let log = report.claude_log(session=stem(path))
+    let log = report.claude_log(session=stem(path), since~)
     @logfiles.each_line(path, line => {
       if @analysis.is_claude_candidate(line) {
         log.read_line(@utf8.decode_lossy(line))
@@ -17,9 +18,10 @@ async fn read_claude_logs(
 async fn read_codex_logs(
   paths : Array[String],
   report : @analysis.Report,
+  since~ : String,
 ) -> Unit {
   for path in paths {
-    let log = report.codex_log(session=stem(path))
+    let log = report.codex_log(session=stem(path), since~)
     @logfiles.each_line(path, line => {
       if @analysis.is_codex_candidate(line) {
         log.read_line(@utf8.decode_lossy(line))

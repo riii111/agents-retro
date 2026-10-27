@@ -3,6 +3,7 @@ pub struct CodexLog {
   priv report : Report
   priv mut session : String
   priv mut sidechain : Bool
+  priv since : String
 }
 
 ///|
@@ -15,8 +16,12 @@ pub fn is_codex_candidate(line : BytesView) -> Bool {
 }
 
 ///|
-pub fn Report::codex_log(self : Report, session~ : String) -> CodexLog {
-  { report: self, session, sidechain: false, }
+pub fn Report::codex_log(
+  self : Report,
+  session~ : String,
+  since~ : String,
+) -> CodexLog {
+  { report: self, session, sidechain: false, since, }
 }
 
 ///|
@@ -28,7 +33,10 @@ pub fn CodexLog::read_line(self : CodexLog, line : StringView) -> Unit {
 
   match @records.string_field(record, "type") {
     "session_meta" => self.read_meta(payload)
-    "response_item" => self.read_item(payload)
+    "response_item" =>
+      if in_period(@records.string_field(record, "timestamp"), since=self.since) {
+        self.read_item(payload)
+      }
     _ => ()
   }
 }

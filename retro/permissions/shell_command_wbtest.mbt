@@ -22,7 +22,7 @@ test "permission command normalization and shape precedence" {
       ("x=1\necho ok", "echo", "variable assignment"),
       ("echo '(while x)'", "echo", "single command"),
     ] {
-    assert_eq(command_head(command), head, msg=command)
+    assert_eq(@shell.command_head(command), head, msg=command)
     assert_eq(command_shape(command), shape, msg=command)
   }
 }

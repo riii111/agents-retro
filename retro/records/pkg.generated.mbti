@@ -2,6 +2,10 @@
 package "riii111/agents-retro/retro/records"
 
 // Values
+pub fn content_text(Json?) -> String
+
+pub fn int_field(Map[String, Json], String) -> Int64
+
 pub fn parse_object(StringView) -> Map[String, Json]?
 
 pub fn string_field(Map[String, Json], String) -> String

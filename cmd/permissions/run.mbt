@@ -17,7 +17,7 @@ async fn report(
 
   let since_ms = now_ms - days * 86_400_000L
   let report = @analysis.Report::new(home~)
-  let records = records(matches.values["projects"][0], since_ms)
+  let records = @logfiles.jsonl_files(matches.values["projects"][0], since_ms)
 
   read_sessions(records, report)
   read_events(matches.values["events"][0], since_ms, report)

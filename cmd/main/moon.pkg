@@ -1,6 +1,7 @@
 import {
   "riii111/agents-retro/cmd/messages",
   "riii111/agents-retro/cmd/permissions",
+  "riii111/agents-retro/cmd/tokens",
   "moonbitlang/core/argparse",
   "moonbitlang/core/env",
   "moonbitlang/async",

@@ -4,6 +4,8 @@ package "riii111/agents-retro/cmd/logfiles"
 // Values
 pub async fn each_line(String, (BytesView) -> Unit) -> Unit
 
+pub async fn jsonl_files(String, Int64) -> Array[String]
+
 pub async fn modified_before(String, Int64) -> Bool
 
 // Errors

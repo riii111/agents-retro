@@ -39,6 +39,14 @@ agents-retro permissions --days 7 --limit 15
 
 See recurring Claude Code permission prompts, auto mode denials, and sandbox failures by command, path, or host. Prompts and denials require [permission event recording](skills/permission-analyze/references/recording.md); sandbox failures use existing session logs. Codex approval events are outside its scope.
 
+## Token usage
+
+```sh
+agents-retro tokens --days 7 --limit 15
+```
+
+Prints JSON showing which projects, sessions, and preceding tool calls used the most tokens, and which tool results were largest. It covers Claude Code and Codex, including subagent logs, and reports the cache read ratio for each session.
+
 ## Agent skills
 
 Copy either skill directory into your agent's skills directory, or reference it from your own skill:

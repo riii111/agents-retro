@@ -16,7 +16,7 @@ async test "permission traversal reads hidden descendants without following dire
   @fs.symlink(target="\{dir}/.hidden/deep/session.jsonl", "\{dir}/alias.jsonl")
   @fs.symlink(target="\{dir}/missing.jsonl", "\{dir}/dangling.jsonl")
 
-  let found = records(dir, 0L)
+  let found = @logfiles.jsonl_files(dir, 0L)
   found.sort_by((a, b) => a.lexical_compare(b))
 
   assert_eq(found, [
@@ -37,8 +37,8 @@ async test "permission traversal reads hidden descendants without following dire
 
   assert_true(output.contains("4 session records"))
   assert_true(output.contains("    1  uv run\n"))
-  assert_eq(records(dir, 253402300799000L), [])
-  assert_eq(records("\{dir}/missing", 0L), [])
+  assert_eq(@logfiles.jsonl_files(dir, 253402300799000L), [])
+  assert_eq(@logfiles.jsonl_files("\{dir}/missing", 0L), [])
 }
 
 ///|

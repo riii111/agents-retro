@@ -4,13 +4,25 @@ let segments : @string.Regex = @string.Regex("&&|;|\n") catch {
 }
 
 ///|
+/// Reserved words that precede the command they introduce.
+let command_openers : Array[String] = [
+  "if", "elif", "then", "else", "do", "while", "until", "!", "{",
+]
+
+///|
+/// Reserved words whose segment holds no command to execute.
+let non_commands : Array[String] = [
+  "for", "select", "case", "function", "fi", "done", "esac", "}",
+]
+
+///|
 pub fn command_head(command : String) -> String {
   for segment in segments.split(command) {
     let words = words(segment)
     let mut start = 0
     while start < words.length() {
       let word = words[start]
-      if (word.contains("=") && !word.has_prefix("-")) || word == "env" {
+      if is_assignment(word) || word == "env" || command_openers.contains(word) {
         start += 1
       } else if word == "-u" {
         start += 2
@@ -19,7 +31,9 @@ pub fn command_head(command : String) -> String {
       }
     }
 
-    if start >= words.length() || words[start] == "cd" {
+    if start >= words.length() ||
+      words[start] == "cd" ||
+      non_commands.contains(words[start]) {
       continue
     }
 
@@ -47,11 +61,39 @@ pub fn command_head(command : String) -> String {
 }
 
 ///|
+fn is_assignment(word : String) -> Bool {
+  let mut length = 0
+  for c in word {
+    if c == '=' {
+      return length > 0
+    }
+    let letter = c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+    let digit = c >= '0' && c <= '9'
+    if !(letter || (digit && length > 0)) {
+      return false
+    }
+    length += 1
+  }
+
+  false
+}
+
+///|
+/// Whitespace inside quotes does not split a word; quotes stay in the word.
 fn words(text : StringView) -> Array[String] {
   let words = []
   let word = StringBuilder()
+  let mut quote : Char? = None
   for c in text {
-    if @whitespace.is_space(c) {
+    if quote is Some(q) {
+      if c == q {
+        quote = None
+      }
+      word.write_char(c)
+    } else if c == '\'' || c == '"' {
+      quote = Some(c)
+      word.write_char(c)
+    } else if @whitespace.is_space(c) {
       if !word.is_empty() {
         words.push(word.to_string())
         word.reset()

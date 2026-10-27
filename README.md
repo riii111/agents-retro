@@ -63,6 +63,14 @@ agents-retro interrupts --days 7 --limit 15
 
 Prints JSON counting the times you interrupted Claude Code or rejected a tool call, by project, session, and the tool call that was running. Subagent logs are included. Codex logs are not read.
 
+## Failed tool calls
+
+```sh
+agents-retro tools --days 7 --limit 15
+```
+
+Prints JSON counting failed Claude Code tool calls by tool and, for Bash, by command, including how often the same call failed again in one session. Refusals by hooks or by you are left out. Codex logs do not mark failed calls, so they are not read.
+
 ## Agent skills
 
 Copy either skill directory into your agent's skills directory, or reference it from your own skill:

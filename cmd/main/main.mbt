@@ -11,6 +11,7 @@ async fn main {
       @permissions.run(permissions, home, now_ms)
     Some(("skills", skills)) => @skills.run(skills, now_ms)
     Some(("tokens", tokens)) => @tokens.run(tokens, now_ms)
+    Some(("tools", tools)) => @tools.run(tools, now_ms)
     _ => fail("a subcommand is required")
   }
 }
@@ -32,6 +33,7 @@ fn command(home : String) -> @argparse.Command {
       @permissions.command(home),
       @skills.command(home),
       @tokens.command(home),
+      @tools.command(home),
     ],
   )
 }

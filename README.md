@@ -55,6 +55,14 @@ agents-retro skills --days 7 --limit 15
 
 Prints JSON counting how often each skill and subagent type was called, and lists installed skills in `~/.claude/skills` and `~/.codex/skills` that were never used. Subagent types come from Claude Code logs only, because Codex logs do not record them.
 
+## Interruptions
+
+```sh
+agents-retro interrupts --days 7 --limit 15
+```
+
+Prints JSON counting the times you interrupted Claude Code or rejected a tool call, by project, session, and the tool call that was running. Subagent logs are included. Codex logs are not read.
+
 ## Agent skills
 
 Copy either skill directory into your agent's skills directory, or reference it from your own skill:

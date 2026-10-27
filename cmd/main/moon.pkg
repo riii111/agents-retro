@@ -1,4 +1,5 @@
 import {
+  "riii111/agents-retro/cmd/interrupts",
   "riii111/agents-retro/cmd/messages",
   "riii111/agents-retro/cmd/permissions",
   "riii111/agents-retro/cmd/skills",

@@ -8,6 +8,7 @@ async fn main {
     Some(("messages", messages)) => @messages.run(messages, home, now_ms)
     Some(("permissions", permissions)) =>
       @permissions.run(permissions, home, now_ms)
+    Some(("tokens", tokens)) => @tokens.run(tokens, now_ms)
     _ => fail("a subcommand is required")
   }
 }
@@ -24,6 +25,10 @@ fn command(home : String) -> @argparse.Command {
     version=VERSION,
     arg_required_else_help=true,
     subcommand_required=true,
-    subcommands=[@messages.command(), @permissions.command(home)],
+    subcommands=[
+      @messages.command(),
+      @permissions.command(home),
+      @tokens.command(home),
+    ],
   )
 }

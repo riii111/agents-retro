@@ -5,13 +5,20 @@ let command_openers : Array[String] = [
 
 ///|
 let non_commands : Array[String] = [
-  "for", "select", "function", "fi", "done", "esac", "}",
+  "for", "select", "function", "fi", "done", "}",
 ]
 
 ///|
+priv struct CaseScope {
+  mut depth : Int32
+  mut pattern_next : Bool
+}
+
+///|
 pub fn command_head(command : String) -> String {
+  let cases = { depth: 0, pattern_next: false, }
   for words in split_segments(command) {
-    guard command_start(words) is Some(start) else { continue }
+    guard cases.command_start(words) is Some(start) else { continue }
     let head = words[start]
     if ["git", "gh", "bun", "bunx", "npm", "npx", "cargo", "go", "nix", "uv"].contains(
         head,
@@ -36,29 +43,45 @@ pub fn command_head(command : String) -> String {
 }
 
 ///|
-fn command_start(words : Array[String]) -> Int32? {
+fn CaseScope::command_start(self : CaseScope, words : Array[String]) -> Int32? {
+  if words == [";;"] {
+    self.pattern_next = self.depth > 0
+    return None
+  }
+
   let mut start = 0
-  while start < words.length() {
+  while true {
+    if start < words.length() && words[start] == "esac" {
+      if self.depth > 0 {
+        self.depth -= 1
+      }
+      self.pattern_next = false
+      return None
+    }
+    if self.pattern_next {
+      guard pattern_end(words, start) is Some(end) else { return None }
+      self.pattern_next = false
+      start = end
+    }
+    if start >= words.length() {
+      return None
+    }
+
     let word = words[start]
-    if is_assignment(word) ||
-      word == "env" ||
-      command_openers.contains(word) ||
-      is_case_pattern(word) {
+    if is_assignment(word) || word == "env" || command_openers.contains(word) {
       start += 1
     } else if word == "-u" {
       start += 2
     } else if word == "case" {
-      match case_body_start(words, start + 1) {
-        Some(body) => start = body
-        None => return None
+      guard keyword_index(words, "in", start + 1) is Some(in_index) else {
+        return None
       }
+      self.depth += 1
+      self.pattern_next = true
+      start = in_index + 1
     } else {
       break
     }
-  }
-
-  if start >= words.length() {
-    return None
   }
 
   let head = words[start]
@@ -70,25 +93,29 @@ fn command_start(words : Array[String]) -> Int32? {
 }
 
 ///|
-fn case_body_start(words : Array[String], from : Int32) -> Int32? {
-  let mut i = from
-  while i < words.length() && words[i] != "in" {
-    i += 1
-  }
-  while i < words.length() && !words[i].has_suffix(")") {
-    i += 1
+fn keyword_index(
+  words : Array[String],
+  keyword : String,
+  from : Int32,
+) -> Int32? {
+  for i in from..<words.length() {
+    if words[i] == keyword {
+      return Some(i)
+    }
   }
 
-  if i < words.length() {
-    Some(i + 1)
-  } else {
-    None
-  }
+  None
 }
 
 ///|
-fn is_case_pattern(word : String) -> Bool {
-  word.has_suffix(")") && !word.contains("(")
+fn pattern_end(words : Array[String], from : Int32) -> Int32? {
+  for i in from..<words.length() {
+    if words[i].has_suffix(")") {
+      return Some(i + 1)
+    }
+  }
+
+  None
 }
 
 ///|
@@ -134,7 +161,6 @@ fn split_segments(command : String) -> Array[Array[String]] {
       }
       word.write_char(c)
     } else if c == '\\' && next == Some('\n') {
-      flush_word(word, words)
       i += 2
       continue
     } else if c == '\\' && next is Some(n) {
@@ -163,6 +189,9 @@ fn split_segments(command : String) -> Array[Array[String]] {
         words.clear()
       }
       if c == '&' {
+        i += 1
+      } else if c == ';' && next == Some(';') {
+        segments.push([";;"])
         i += 1
       }
     } else if @whitespace.is_space(c) {

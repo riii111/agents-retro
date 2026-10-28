@@ -1,9 +1,9 @@
 import {
   "moonbitlang/async/fs",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/async",
 } for "test"
 

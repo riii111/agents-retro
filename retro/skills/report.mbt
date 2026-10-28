@@ -27,7 +27,9 @@ fn Report::add_skill(
   sidechain~ : Bool,
 ) -> Unit {
   self.used.add("\{source}/\{bare_name(name)}")
-  tally_of(self.skills, { source, name, via, }).add(session, sidechain~)
+  self.skills
+  .get_or_init({ source, name, via, }, Tally::new)
+  .add(session, sidechain~)
 }
 
 ///|
@@ -38,14 +40,7 @@ fn Report::add_subagent(
   session~ : String,
   sidechain~ : Bool,
 ) -> Unit {
-  tally_of(self.subagents, { source, subagent_type, }).add(session, sidechain~)
-}
-
-///|
-fn[K : Hash + Eq] tally_of(tallies : Map[K, Tally], key : K) -> Tally {
-  if !tallies.contains(key) {
-    tallies[key] = Tally::new()
-  }
-
-  tallies[key]
+  self.subagents
+  .get_or_init({ source, subagent_type, }, Tally::new)
+  .add(session, sidechain~)
 }

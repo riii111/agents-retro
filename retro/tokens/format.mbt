@@ -16,17 +16,20 @@ pub fn Report::to_json(
     .collect()
 
   Json::object({
-    "days": number(days),
-    "records": number(records.to_int64()),
+    "days": @jsonreport.number(days),
+    "records": @jsonreport.number(records.to_int64()),
     "total": tally_json([], self.total),
-    "projects": top(projects, limit, entry => entry.1.total(), entry => {
+    "projects": @jsonreport.top(projects, limit, entry => entry.1.total(), entry => {
       let sessions = self.project_sessions[entry.0].length().to_int64()
       tally_json(
-        [("project", Json::string(entry.0)), ("sessions", number(sessions))],
+        [
+          ("project", Json::string(entry.0)),
+          ("sessions", @jsonreport.number(sessions)),
+        ],
         entry.1,
       )
     }),
-    "sessions": top(sessions, limit, s => s.tally.total(), s => {
+    "sessions": @jsonreport.top(sessions, limit, s => s.tally.total(), s => {
       tally_json(
         [
           ("source", Json::string(s.source)),
@@ -37,66 +40,50 @@ pub fn Report::to_json(
         s.tally,
       )
     }),
-    "previous_tools": top(previous_tools, limit, entry => entry.1.total(), entry => {
-      tally_json(
-        [
-          ("tool", Json::string(entry.0.name)),
-          ("command", Json::string(entry.0.command)),
-        ],
-        entry.1,
-      )
-    }),
-    "tool_results": top(result_sizes, limit, entry => entry.1.chars, entry => {
-      Json::object({
-        "tool": Json::string(entry.0.name),
-        "command": Json::string(entry.0.command),
-        "results": number(entry.1.results.to_int64()),
-        "chars": number(entry.1.chars),
-      })
-    }),
+    "previous_tools": @jsonreport.top(
+      previous_tools,
+      limit,
+      entry => entry.1.total(),
+      entry => {
+        tally_json(
+          [
+            ("tool", Json::string(entry.0.name)),
+            ("command", Json::string(entry.0.command)),
+          ],
+          entry.1,
+        )
+      },
+    ),
+    "tool_results": @jsonreport.top(
+      result_sizes,
+      limit,
+      entry => entry.1.chars,
+      entry => {
+        Json::object({
+          "tool": Json::string(entry.0.name),
+          "command": Json::string(entry.0.command),
+          "results": @jsonreport.number(entry.1.results.to_int64()),
+          "chars": @jsonreport.number(entry.1.chars),
+        })
+      },
+    ),
   }).stringify() +
   "\n"
 }
 
 ///|
-fn number(n : Int64) -> Json {
-  Json::number(n.to_double())
-}
-
-///|
 fn tally_json(keys : Array[(String, Json)], tally : Tally) -> Json {
-  let fields : Map[String, Json] = Map([])
-  for key in keys {
-    fields[key.0] = key.1
-  }
-
-  fields["responses"] = number(tally.responses.to_int64())
-  fields["input"] = number(tally.input)
-  fields["cache_creation"] = number(tally.cache_creation)
-  fields["cache_read"] = number(tally.cache_read)
-  fields["output"] = number(tally.output)
-  fields["total"] = number(tally.total())
-  fields["sidechain_total"] = number(tally.sidechain)
-  fields["cache_read_ratio"] = Json::number(tally.cache_read_ratio())
-  Json::object(fields)
-}
-
-///|
-fn[T] top(
-  items : Array[T],
-  limit : Int32,
-  size : (T) -> Int64,
-  render : (T) -> Json,
-) -> Json {
-  let ranked = items.mapi((i, item) => (item, i))
-  ranked.sort_by((a, b) => {
-    let by_size = size(b.0).compare(size(a.0))
-    if by_size == 0 {
-      a.1.compare(b.1)
-    } else {
-      by_size
-    }
-  })
-
-  Json::array(ranked.iter().take(limit).map(entry => render(entry.0)).collect())
+  @jsonreport.object(
+    keys +
+    [
+      ("responses", @jsonreport.number(tally.responses.to_int64())),
+      ("input", @jsonreport.number(tally.input)),
+      ("cache_creation", @jsonreport.number(tally.cache_creation)),
+      ("cache_read", @jsonreport.number(tally.cache_read)),
+      ("output", @jsonreport.number(tally.output)),
+      ("total", @jsonreport.number(tally.total())),
+      ("sidechain_total", @jsonreport.number(tally.sidechain)),
+      ("cache_read_ratio", Json::number(tally.cache_read_ratio())),
+    ],
+  )
 }

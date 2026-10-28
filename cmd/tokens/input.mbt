@@ -4,11 +4,9 @@ async fn read_claude_logs(
   report : @analysis.Report,
 ) -> Unit {
   for path in paths {
-    let log = report.claude_log(session=stem(path))
-    @logfiles.each_line(path, line => {
-      if @analysis.is_claude_candidate(line) {
-        log.read_line(@utf8.decode_lossy(line))
-      }
+    let log = report.claude_log(session=@logfiles.stem(path))
+    @logfiles.each_candidate(path, @analysis.is_claude_candidate, line => {
+      log.read_line(line)
     })
   }
 }
@@ -19,24 +17,9 @@ async fn read_codex_logs(
   report : @analysis.Report,
 ) -> Unit {
   for path in paths {
-    let log = report.codex_log(session=stem(path))
-    @logfiles.each_line(path, line => {
-      if @analysis.is_codex_candidate(line) {
-        log.read_line(@utf8.decode_lossy(line))
-      }
+    let log = report.codex_log(session=@logfiles.stem(path))
+    @logfiles.each_candidate(path, @analysis.is_codex_candidate, line => {
+      log.read_line(line)
     })
-  }
-}
-
-///|
-fn stem(path : String) -> String {
-  let name = match path.rev_find("/") {
-    Some(i) => path[i + 1:].to_owned()
-    None => path
-  }
-
-  match name.strip_suffix(".jsonl") {
-    Some(s) => s.to_owned()
-    None => name
   }
 }

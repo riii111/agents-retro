@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/agents-retro/cmd/options"
+
+import {
+  "moonbitlang/core/argparse",
+}
+
+// Values
+pub fn days() -> @argparse.OptionArg
+
+pub fn limit() -> @argparse.OptionArg
+
+pub fn projects(String) -> @argparse.OptionArg
+
+pub fn sessions(String) -> @argparse.OptionArg
+
+// Errors
+
+// Types and methods
+pub struct Window {
+  days : Int64
+  limit : Int32
+  since_ms : Int64
+}
+pub fn Window::parse(@argparse.Matches, Int64) -> Self raise
+
+// Type aliases
+
+// Traits

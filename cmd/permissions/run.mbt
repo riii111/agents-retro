@@ -13,14 +13,16 @@ async fn report(
   home : String,
   now_ms : Int64,
 ) -> String {
-  let (days, limit) = report_options(matches)
+  let window = @options.Window::parse(matches, now_ms)
 
-  let since_ms = now_ms - days * 86_400_000L
   let report = @analysis.Report::new(home~)
-  let records = @logfiles.jsonl_files(matches.values["projects"][0], since_ms)
+  let records = @logfiles.jsonl_files(
+    matches.values["projects"][0],
+    window.since_ms,
+  )
 
   read_sessions(records, report)
-  read_events(matches.values["events"][0], since_ms, report)
+  read_events(matches.values["events"][0], window.since_ms, report)
 
-  report.format(days~, records=records.length(), limit~)
+  report.format(days=window.days, records=records.length(), limit=window.limit)
 }

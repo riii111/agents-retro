@@ -32,8 +32,7 @@ fn Report::add_failure(
     "\{session}\n\{call.tool.name}\n\{call.input}",
   )
   self.total.add(session, sidechain~, repeat~)
-  if !self.tools.contains(call.tool) {
-    self.tools[call.tool] = Failures::new()
-  }
-  self.tools[call.tool].add(session, sidechain~, repeat~)
+  self.tools
+  .get_or_init(call.tool, Failures::new)
+  .add(session, sidechain~, repeat~)
 }

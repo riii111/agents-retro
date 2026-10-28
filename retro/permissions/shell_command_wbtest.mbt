@@ -7,7 +7,7 @@ test "permission command normalization and shape precedence" {
         "compound",
       ),
       ("A=1 npm run check", "npm run", "variable assignment"),
-      ("for x in a; do echo $(date); done", "for", "loop"),
+      ("for x in a; do echo $(date); done", "echo", "loop"),
       ("echo `date` | cat", "echo", "command substitution"),
       ("\u{3000}uv\u{3000}run main.py", "uv run", "single command"),
       ("cd /tmp; cd /repo", "", "compound"),

@@ -99,7 +99,12 @@ fn ClaudeLog::read_text(
     _ => None
   }
   if event is Some(event) {
-    self.add(record, event, self.previous)
+    self.add(
+      @records.string_field(record, "uuid"),
+      record,
+      event,
+      self.previous,
+    )
   }
   self.previous = no_tool
 }
@@ -115,17 +120,30 @@ fn ClaudeLog::read_result(
     return
   }
 
-  let tool = match item.get("tool_use_id") {
-    Some(String(id)) =>
-      self.calls.get(id).unwrap_or({ name: "(unknown)", command: "", })
-    _ => { name: "(unknown)", command: "", }
+  let unknown = { name: "(unknown)", command: "", }
+  match item.get("tool_use_id") {
+    Some(String(id)) if !id.is_empty() =>
+      self.add(
+        "tool_result/\{id}",
+        record,
+        Rejection,
+        self.calls.get(id).unwrap_or(unknown),
+      )
+    _ =>
+      self.add(
+        @records.string_field(record, "uuid"),
+        record,
+        Rejection,
+        unknown,
+      )
   }
-  self.add(record, Rejection, tool)
 }
 
 ///|
+/// One record can hold several rejections, so a rejection is identified by its tool use id instead of the record.
 fn ClaudeLog::add(
   self : ClaudeLog,
+  id : String,
   record : Map[String, Json],
   event : Event,
   tool : Tool,
@@ -140,7 +158,7 @@ fn ClaudeLog::add(
   let session = @records.string_field(record, "sessionId")
   let project = @records.string_field(record, "cwd")
   self.report.add_event(
-    @records.string_field(record, "uuid"),
+    id,
     event,
     session=if session.is_empty() { "(unknown)" } else { session },
     project=if project.is_empty() { "(unknown)" } else { project },

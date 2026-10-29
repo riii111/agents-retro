@@ -21,7 +21,7 @@ pub fn Report::new() -> Report {
 }
 
 ///|
-/// Resumed sessions copy earlier records into a new log file, so a record id is counted once.
+/// Resumed sessions copy earlier records into a new log file, so an event id is counted once.
 fn Report::add_event(
   self : Report,
   id : String,

@@ -233,6 +233,34 @@ test "report counts a record copied into a resumed session once" {
 }
 
 ///|
+test "report counts each rejection in one record and counts a copied rejection once" {
+  let report = @interrupts.Report::new()
+  for _ in 0..<2 {
+    let log = report.claude_log(since=test_since)
+    for
+      line in [
+        (
+          #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","uuid":"a1","sessionId":"s1","cwd":"/work/a","isSidechain":false,"message":{"id":"m1","role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Read","input":{}},{"type":"tool_use","id":"t2","name":"Edit","input":{}}]}}
+        ),
+        (
+          #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","uuid":"u1","sessionId":"s1","cwd":"/work/a","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"The user doesn't want to proceed with this tool use.","is_error":true},{"type":"tool_result","tool_use_id":"t2","content":"The user doesn't want to proceed with this tool use.","is_error":true},{"type":"text","text":"[Request interrupted by user for tool use]"}]}}
+        ),
+      ] {
+      log.read_line(line)
+    }
+  }
+
+  let output = report.to_json(days=7L, records=2, limit=15)
+  assert_true(
+    output.contains(
+      "\"total\":{\"interrupts\":0,\"tool_use_interrupts\":1,\"rejections\":2,\"total\":3,\"sidechain_total\":0}",
+    ),
+  )
+  assert_true(output.contains("\"tool\":\"Read\""))
+  assert_true(output.contains("\"tool\":\"Edit\""))
+}
+
+///|
 test "report counts only events dated in the period and keeps the earlier tool call" {
   let report = @interrupts.Report::new()
   let log = report.claude_log(since=test_since)
@@ -278,4 +306,17 @@ test "report limits every list" {
 
   assert_eq(tools.length(), 1)
   assert_eq(sessions.length(), 1)
+}
+
+///|
+test "report is unchanged when only candidate lines are read" {
+  let lines = claude_lines()
+  let candidates = lines.filter(line => {
+    @interrupts.is_claude_candidate(@utf8.encode(line))
+  })
+
+  assert_eq(
+    build_report([candidates]).to_json(days=7L, records=1, limit=15),
+    build_report([lines]).to_json(days=7L, records=1, limit=15),
+  )
 }

@@ -32,6 +32,37 @@ test "in_period compares the seconds of a UTC timestamp" {
 }
 
 ///|
+test "utc_millis_timestamp keeps the milliseconds" {
+  inspect(@clock.utc_millis_timestamp(0L), content="1970-01-01T00:00:00.000")
+  inspect(
+    @clock.utc_millis_timestamp(1_709_251_199_037L),
+    content="2024-02-29T23:59:59.037",
+  )
+}
+
+///|
+test "in_period compares at millisecond precision around the start" {
+  let since = "2026-10-22T16:31:41.037"
+
+  assert_false(@clock.in_period("2026-10-22T16:31:41.036Z", since~))
+  assert_true(@clock.in_period("2026-10-22T16:31:41.037Z", since~))
+  assert_true(@clock.in_period("2026-10-22T16:31:41.037030Z", since~))
+  assert_true(@clock.in_period("2026-10-22T16:31:41.038Z", since~))
+  assert_false(@clock.in_period("2026-10-22T16:31:41Z", since~))
+  assert_true(@clock.in_period("2026-10-22T16:31:41.9Z", since~))
+  assert_true(@clock.in_period("2026-10-22T16:31:42Z", since~))
+}
+
+///|
+test "in_period reads a second-only since as the start of that second" {
+  let since = "2026-10-22T16:31:41"
+
+  assert_true(@clock.in_period("2026-10-22T16:31:41Z", since~))
+  assert_true(@clock.in_period("2026-10-22T16:31:41.000Z", since~))
+  assert_false(@clock.in_period("2026-10-22T16:31:40.999Z", since~))
+}
+
+///|
 test "in_period excludes records without a usable timestamp" {
   let since = "1970-01-01T00:00:00"
 

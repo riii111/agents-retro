@@ -6,6 +6,8 @@ pub fn in_period(String, since~ : String) -> Bool
 
 pub fn utc_date(Int64) -> String
 
+pub fn utc_millis_timestamp(Int64) -> String
+
 pub fn utc_millisecond(Int64) -> Int64
 
 pub fn utc_timestamp(Int64) -> String

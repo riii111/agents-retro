@@ -72,6 +72,33 @@ async test "tokens leaves out usage dated before the period" {
 }
 
 ///|
+async test "tokens compares the period start at millisecond precision" {
+  let dir = @fs.tmpdir(prefix="tokens-boundary")
+  defer @fs.rmdir(dir, recursive=true)
+  let projects = "\{dir}/projects"
+  @fs.mkdir("\{projects}/p", recursive=true)
+  @fs.write_file(
+    "\{projects}/p/s1.jsonl",
+    (
+      #|{"timestamp":"2026-10-20T23:30:54.036Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"before","content":[],"usage":{"input_tokens":1000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0}}}
+      #|{"timestamp":"2026-10-20T23:30:54Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"whole-second","content":[],"usage":{"input_tokens":1000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0}}}
+      #|{"timestamp":"2026-10-20T23:30:54.037Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"at","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0}}}
+      #|{"timestamp":"2026-10-20T23:30:54.038Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"after","content":[],"usage":{"input_tokens":2,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0}}}
+    ),
+  )
+  let matches = command(dir).parse(argv=[
+    "--projects",
+    projects,
+    "--sessions",
+    "\{dir}/missing",
+  ])
+
+  let output = report(matches, test_now_ms + 37L)
+
+  assert_true(output.contains("\"total\":{\"responses\":2,\"input\":3,"))
+}
+
+///|
 async test "tokens rejects negative numeric options and preserves zero" {
   let dir = @fs.tmpdir(prefix="tokens-options")
   defer @fs.rmdir(dir, recursive=true)

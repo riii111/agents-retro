@@ -17,7 +17,7 @@ async fn report(matches : @argparse.Matches, now_ms : Int64) -> String {
     window.since_ms,
   )
 
-  let since = @clock.utc_timestamp(window.since_ms)
+  let since = @clock.utc_millis_timestamp(window.since_ms)
   read_claude_logs(claude, report, since~)
   read_codex_logs(codex, report, since~)
 

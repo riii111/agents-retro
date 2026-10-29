@@ -2,11 +2,39 @@
 let ms_per_day : Int64 = 86_400_000L
 
 ///|
-/// Log timestamps are UTC ISO 8601, so their first 19 characters (`YYYY-MM-DDTHH:MM:SS`) compare in time order as strings.
+/// Log timestamps are UTC ISO 8601, so both sides compare as strings once each is normalized to `YYYY-MM-DDTHH:MM:SS.mmm`.
 /// A missing or shorter timestamp is outside every period.
 pub fn in_period(timestamp : String, since~ : String) -> Bool {
   timestamp.length() >= 19 &&
-  timestamp[:19].to_owned().lexical_compare(since) >= 0
+  millisecond_key(timestamp).lexical_compare(millisecond_key(since)) >= 0
+}
+
+///|
+/// Pads or truncates the fraction to milliseconds, so `...:41Z` and `...:41.000Z` are the same instant.
+fn millisecond_key(text : String) -> String {
+  let key = StringBuilder()
+  key.write_string(text[:19].to_owned())
+  key.write_char('.')
+
+  let mut digits = 0
+  if text.length() > 19 && text[19:].has_prefix(".") {
+    for c in text[20:] {
+      if digits == 3 || c < '0' || c > '9' {
+        break
+      }
+      key.write_char(c)
+      digits += 1
+    }
+  }
+  key.write_string("0".repeat(3 - digits))
+
+  key.to_string()
+}
+
+///|
+/// UTC date and time of a Unix time in milliseconds, as `YYYY-MM-DDTHH:MM:SS.mmm`.
+pub fn utc_millis_timestamp(ms : Int64) -> String {
+  "\{utc_timestamp(ms)}.\{zero_pad(utc_millisecond(ms), 3)}"
 }
 
 ///|

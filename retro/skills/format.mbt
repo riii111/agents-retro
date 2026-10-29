@@ -1,6 +1,6 @@
 ///|
-/// Used lists are ordered by invocations, largest first. `unused_skills` lists
-/// every installed skill without a use and is not cut by `limit`.
+/// Used lists are ordered by invocations, largest first.
+/// `unused_skills` lists every installed skill without a use and is not cut by `limit`.
 pub fn Report::to_json(
   self : Report,
   days~ : Int64,

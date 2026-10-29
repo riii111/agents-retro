@@ -39,6 +39,7 @@
             packages = [
               pkgs.moonbit-bin.latest
               pkgs.lefthook
+              pkgs.actionlint
             ];
           };
         }

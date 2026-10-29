@@ -17,7 +17,8 @@ test "window defaults to a week and 15 rows" {
 
 ///|
 test "window rejects negative values and keeps zero" {
-  for args in [["--days", "-1"], ["--limit=-1"]] {
+  for
+    args in [["--days", "-1"], ["--limit", "-1"], ["--days=-1"], ["--limit=-1"]] {
     let matches = command().parse(argv=args)
 
     let error = try {
@@ -30,11 +31,10 @@ test "window rejects negative values and keeps zero" {
     assert_true(error.contains("must be non-negative"))
   }
 
-  let window = Window::parse(
-    command().parse(argv=["--days", "0", "--limit", "0"]),
-    5L,
-  )
+  for args in [["--days", "0", "--limit", "0"], ["--days=0", "--limit=0"]] {
+    let window = Window::parse(command().parse(argv=args), 5L)
 
-  assert_eq(window.since_ms, 5L)
-  assert_eq(window.limit, 0)
+    assert_eq(window.since_ms, 5L)
+    assert_eq(window.limit, 0)
+  }
 }

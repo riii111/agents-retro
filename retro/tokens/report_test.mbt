@@ -290,9 +290,9 @@ test "report limits each list" {
 }
 
 ///|
-test "report counts a copied tool result once and keeps distinct calls" {
+test "report counts a tool result copied into a resumed file once" {
   let report = @tokens.Report::new()
-  let claude = report.claude_log(session="file-stem", since=test_since)
+  let original = report.claude_log(session="original", since=test_since)
   for
     line in [
       (
@@ -301,6 +301,12 @@ test "report counts a copied tool result once and keeps distinct calls" {
       (
         #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","sessionId":"s1","cwd":"/w","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"abc"}]}}
       ),
+    ] {
+    original.read_line(line)
+  }
+  let resumed = report.claude_log(session="resumed", since=test_since)
+  for
+    line in [
       (
         #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","cwd":"/w","message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Read","input":{}},{"type":"tool_use","id":"t2","name":"Read","input":{}}],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}
       ),
@@ -314,10 +320,10 @@ test "report counts a copied tool result once and keeps distinct calls" {
         #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","cwd":"/w","message":{"id":"m2","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}
       ),
     ] {
-    claude.read_line(line)
+    resumed.read_line(line)
   }
 
-  let output = report.to_json(days=7L, records=1, limit=15)
+  let output = report.to_json(days=7L, records=2, limit=15)
   assert_true(output.contains("\"total\":{\"responses\":2,"))
   assert_true(
     output.contains(
@@ -417,34 +423,36 @@ test "report counts only Codex records dated in the period and keeps earlier cal
 }
 
 ///|
-test "report keeps equal call ids from Claude and Codex apart" {
+test "report keeps equal call ids from Claude and Codex apart across copied files" {
   let report = @tokens.Report::new()
-  let claude = report.claude_log(session="c", since=test_since)
-  for
-    line in [
-      (
-        #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"same","name":"Read","input":{}}]}}
-      ),
-      (
-        #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"same","content":"abc"}]}}
-      ),
-    ] {
-    claude.read_line(line)
-  }
-  let codex = report.codex_log(session="x", since=test_since)
-  for
-    line in [
-      (
-        #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"response_item","payload":{"type":"function_call","name":"exec","call_id":"same"}}
-      ),
-      (
-        #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"same","output":"de"}}
-      ),
-    ] {
-    codex.read_line(line)
+  for file in ["a", "b"] {
+    let claude = report.claude_log(session=file, since=test_since)
+    for
+      line in [
+        (
+          #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"same","name":"Read","input":{}}]}}
+        ),
+        (
+          #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"same","content":"abc"}]}}
+        ),
+      ] {
+      claude.read_line(line)
+    }
+    let codex = report.codex_log(session=file, since=test_since)
+    for
+      line in [
+        (
+          #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"response_item","payload":{"type":"function_call","name":"exec","call_id":"same"}}
+        ),
+        (
+          #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"same","output":"de"}}
+        ),
+      ] {
+      codex.read_line(line)
+    }
   }
 
-  let output = report.to_json(days=7L, records=2, limit=15)
+  let output = report.to_json(days=7L, records=4, limit=15)
   assert_true(
     output.contains(
       "\"tool_results\":[{\"tool\":\"Read\",\"command\":\"\",\"results\":1,\"chars\":3},{\"tool\":\"exec\",\"command\":\"\",\"results\":1,\"chars\":2}]",

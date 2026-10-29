@@ -21,15 +21,15 @@ pub async fn run(
   @fs.mkdir(out_dir, recursive=true, allow_exist=true)
 
   let messages_path = "\{out_dir}/\{today}-messages.tsv"
-  write_lines(messages_path, messages.map(@analysis.message_tsv_line))
+  write_lines(messages_path, messages.iter().map(@analysis.message_tsv_line))
 
   let hits = @analysis.match_patterns(messages, patterns)
   let examples_path = "\{out_dir}/\{today}-examples.tsv"
   write_lines(
     examples_path,
-    @analysis.pattern_examples(hits).map(e => {
-      @analysis.example_tsv_line(e.0, e.1)
-    }),
+    @analysis.pattern_examples(hits)
+    .iter()
+    .map(e => @analysis.example_tsv_line(e.0, e.1)),
   )
 
   let chunks = @analysis.unmatched_chunks(messages, hits)

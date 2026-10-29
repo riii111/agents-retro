@@ -1,0 +1,2 @@
+{"type":"assistant","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cargo test"}}]}}
+{"type":"user","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"Exit code 1"}]}}

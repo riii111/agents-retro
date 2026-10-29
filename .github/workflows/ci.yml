@@ -25,13 +25,24 @@ jobs:
         with:
           persist-credentials: false
       - uses: cachix/install-nix-action@d9186cbdca7adedf113a159fa91f725a27866771 # v31
+      - name: Lint workflows
+        run: actionlint
+      - name: Check Nix formatting
+        run: nix fmt --no-write-lock-file -- --check flake.nix
       - name: Install dependencies
         run: moon update
       - name: Check formatting
         run: moon fmt --check
       - name: Check warnings
         run: moon check --deny-warn
+      - name: Check public interfaces
+        run: |
+          moon info
+          git add --intent-to-add --all -- '*.mbti'
+          git diff --exit-code -- '*.mbti'
       - name: Test
         run: moon test
       - name: Build native release
         run: moon build --target native --release
+      - name: Test CLI
+        run: moon cram test --release -- tests/cram

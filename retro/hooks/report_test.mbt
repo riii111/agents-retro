@@ -190,3 +190,19 @@ test "candidate lines cover hook errors, Stop blocks and Bash calls" {
   assert_true(@hooks.is_claude_candidate(b"{\"name\":\"Bash\"}"))
   assert_false(@hooks.is_claude_candidate(b"{\"type\":\"assistant\"}"))
 }
+
+///|
+test "report is unchanged when only candidate lines are read" {
+  let report = @hooks.Report::new()
+  let log = report.claude_log(session="file-stem", since=test_since)
+  for line in log_lines() {
+    if @hooks.is_claude_candidate(@utf8.encode(line)) {
+      log.read_line(line)
+    }
+  }
+
+  assert_eq(
+    report.to_json(days=7L, records=2, limit=15),
+    build_report().to_json(days=7L, records=2, limit=15),
+  )
+}

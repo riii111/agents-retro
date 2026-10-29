@@ -18,6 +18,12 @@ fn Report::first_seen(self : Report, id : String) -> Bool {
 }
 
 ///|
+/// Resumed sessions copy a user record into a new log file, so a record with an id is counted once.
+fn Report::first_record(self : Report, uuid : String) -> Bool {
+  uuid.is_empty() || self.seen.add_and_check("record/\{uuid}")
+}
+
+///|
 fn Report::add_skill(
   self : Report,
   source~ : String,

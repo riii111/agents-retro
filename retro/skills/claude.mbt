@@ -41,7 +41,13 @@ pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
 
   match @records.string_field(record, "type") {
     "assistant" => self.read_assistant(message, session~, sidechain~)
-    "user" => self.read_user(message, session~, sidechain~)
+    "user" =>
+      self.read_user(
+        @records.string_field(record, "uuid"),
+        message,
+        session~,
+        sidechain~,
+      )
     _ => ()
   }
 }
@@ -95,6 +101,7 @@ fn ClaudeLog::read_assistant(
 ///|
 fn ClaudeLog::read_user(
   self : ClaudeLog,
+  uuid : String,
   message : Map[String, Json],
   session~ : String,
   sidechain~ : Bool,
@@ -112,11 +119,15 @@ fn ClaudeLog::read_user(
     _ => []
   }
 
-  for text in texts {
-    guard slash_command(text) is Some(name) && !builtin_commands.contains(name) else {
-      continue
+  let names = texts.filter_map(text => {
+    match slash_command(text) {
+      Some(name) if !builtin_commands.contains(name) => Some(name)
+      _ => None
     }
+  })
+  guard !names.is_empty() && self.report.first_record(uuid) else { return }
 
+  for name in names {
     self.report.add_skill(
       source="claude",
       name~,

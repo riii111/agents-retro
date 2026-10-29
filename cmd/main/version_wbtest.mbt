@@ -5,8 +5,7 @@ async test "VERSION matches the version in moon.mod" {
 }
 
 ///|
-/// The test binary is built under the module's `_build`, so the module root is
-/// found from its path instead of the working directory.
+/// The test binary is built under the module's `_build`, so the module root is found from its path instead of the working directory.
 async fn find_module_manifest(executable : String) -> String {
   let mut dir = @fs.realpath(executable)
   while true {

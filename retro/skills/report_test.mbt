@@ -233,6 +233,47 @@ test "report ignores calls before the period but still reads the Codex session i
 }
 
 ///|
+test "report counts a slash command record copied into a resumed session once" {
+  let report = @skills.Report::new()
+  let record =
+    #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","uuid":"u1","sessionId":"s1","isSidechain":false,"message":{"role":"user","content":[{"type":"text","text":"<command-name>/create-pr</command-name>"},{"type":"text","text":"<command-name>/create-pr</command-name>"}]}}
+  for _ in 0..<2 {
+    let log = report.claude_log(
+      session="file-stem",
+      since="2026-10-01T00:00:00",
+    )
+    log.read_line(record)
+  }
+
+  let output = report.to_json(days=7L, records=2, limit=15, claude_skills=[], codex_skills=[])
+  inspect(output.contains("\"via\":\"slash_command\""), content="true")
+  inspect(output.contains("\"invocations\":2,"), content="true")
+}
+
+///|
+test "report is unchanged when only candidate lines are read" {
+  let since = "2026-10-01T00:00:00"
+  let report = @skills.Report::new()
+  let claude = report.claude_log(session="file-stem", since~)
+  for line in claude_lines() {
+    if @skills.is_claude_candidate(@utf8.encode(line)) {
+      claude.read_line(line)
+    }
+  }
+  let codex = report.codex_log(session="file-stem", since~)
+  for line in codex_lines() {
+    if @skills.is_codex_candidate(@utf8.encode(line)) {
+      codex.read_line(line)
+    }
+  }
+
+  assert_eq(
+    report.to_json(days=7L, records=3, limit=15, claude_skills=[], codex_skills=[]),
+    build_report().to_json(days=7L, records=3, limit=15, claude_skills=[], codex_skills=[]),
+  )
+}
+
+///|
 test "utc_timestamp formats milliseconds as a UTC date and time" {
   inspect(@skills.utc_timestamp(0L), content="1970-01-01T00:00:00")
   inspect(

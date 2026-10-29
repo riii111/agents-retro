@@ -214,79 +214,22 @@ test "report counts repeated responses once and splits sessions and sidechains" 
 }
 
 ///|
-test "report limits each list" {
-  let json = @json.parse(build_report().to_json(days=7L, records=2, limit=1))
-  inspect(
-    json.stringify(indent=2),
-    content=(
-      #|{
-      #|  "days": 7,
-      #|  "records": 2,
-      #|  "total": {
-      #|    "responses": 5,
-      #|    "input": 66,
-      #|    "cache_creation": 100,
-      #|    "cache_read": 370,
-      #|    "output": 46,
-      #|    "total": 582,
-      #|    "sidechain_total": 5,
-      #|    "cache_read_ratio": 0.69
-      #|  },
-      #|  "projects": [
-      #|    {
-      #|      "project": "/work/a",
-      #|      "sessions": 1,
-      #|      "responses": 3,
-      #|      "input": 6,
-      #|      "cache_creation": 100,
-      #|      "cache_read": 300,
-      #|      "output": 34,
-      #|      "total": 440,
-      #|      "sidechain_total": 5,
-      #|      "cache_read_ratio": 0.739
-      #|    }
-      #|  ],
-      #|  "sessions": [
-      #|    {
-      #|      "source": "claude",
-      #|      "session": "s1",
-      #|      "project": "/work/a",
-      #|      "sidechain": false,
-      #|      "responses": 2,
-      #|      "input": 5,
-      #|      "cache_creation": 100,
-      #|      "cache_read": 300,
-      #|      "output": 30,
-      #|      "total": 435,
-      #|      "sidechain_total": 0,
-      #|      "cache_read_ratio": 0.741
-      #|    }
-      #|  ],
-      #|  "previous_tools": [
-      #|    {
-      #|      "tool": "Bash",
-      #|      "command": "git status",
-      #|      "responses": 2,
-      #|      "input": 4,
-      #|      "cache_creation": 0,
-      #|      "cache_read": 300,
-      #|      "output": 24,
-      #|      "total": 328,
-      #|      "sidechain_total": 5,
-      #|      "cache_read_ratio": 0.987
-      #|    }
-      #|  ],
-      #|  "tool_results": [
-      #|    {
-      #|      "tool": "exec",
-      #|      "command": "",
-      #|      "results": 1,
-      #|      "chars": 6
-      #|    }
-      #|  ]
-      #|}
-    ),
-  )
+test "report limits each list without changing the totals" {
+  let full = @json.parse(build_report().to_json(days=7L, records=2, limit=15))
+  let limited = @json.parse(build_report().to_json(days=7L, records=2, limit=1))
+  guard full is Object(full) && limited is Object(limited) else {
+    fail("report is not an object")
+  }
+
+  assert_eq(limited["total"].stringify(), full["total"].stringify())
+  for key in ["projects", "sessions", "previous_tools", "tool_results"] {
+    guard full[key] is Array(full_list) && limited[key] is Array(limited_list) else {
+      fail("missing list \{key}")
+    }
+
+    assert_eq(limited_list.length(), 1)
+    assert_eq(limited_list[0].stringify(), full_list[0].stringify())
+  }
 }
 
 ///|
@@ -457,5 +400,27 @@ test "report keeps equal call ids from Claude and Codex apart across copied file
     output.contains(
       "\"tool_results\":[{\"tool\":\"Read\",\"command\":\"\",\"results\":1,\"chars\":3},{\"tool\":\"exec\",\"command\":\"\",\"results\":1,\"chars\":2}]",
     ),
+  )
+}
+
+///|
+test "report is unchanged when only candidate lines are read" {
+  let report = @tokens.Report::new()
+  let claude = report.claude_log(session="file-stem", since=test_since)
+  for line in claude_lines() {
+    if @tokens.is_claude_candidate(@utf8.encode(line)) {
+      claude.read_line(line)
+    }
+  }
+  let codex = report.codex_log(session="file-stem", since=test_since)
+  for line in codex_lines() {
+    if @tokens.is_codex_candidate(@utf8.encode(line)) {
+      codex.read_line(line)
+    }
+  }
+
+  assert_eq(
+    report.to_json(days=7L, records=2, limit=15),
+    build_report().to_json(days=7L, records=2, limit=15),
   )
 }

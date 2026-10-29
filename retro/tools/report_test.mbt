@@ -223,3 +223,20 @@ test "candidate lines are tool uses and error results" {
   assert_true(@tools.is_claude_candidate(b"{\"is_error\":true}"))
   assert_false(@tools.is_claude_candidate(b"{\"is_error\":false}"))
 }
+
+///|
+test "report is unchanged when only candidate lines are read" {
+  let candidates = failure_lines().filter(line => {
+    @tools.is_claude_candidate(@utf8.encode(line))
+  })
+  let reports = [failure_lines(), candidates].map(lines => {
+    let report = @tools.Report::new()
+    let log = report.claude_log(session="file-stem", since=test_since)
+    for line in lines {
+      log.read_line(line)
+    }
+    report.to_json(days=7L, records=1, limit=15)
+  })
+
+  assert_eq(reports[1], reports[0])
+}

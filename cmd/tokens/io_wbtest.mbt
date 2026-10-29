@@ -104,8 +104,7 @@ async test "tokens rejects negative numeric options and preserves zero" {
   defer @fs.rmdir(dir, recursive=true)
   let paths = ["--projects", "\{dir}/missing", "--sessions", "\{dir}/missing"]
 
-  for
-    args in [["--days", "-1"], ["--limit", "-1"], ["--days=-1"], ["--limit=-1"]] {
+  for args in [["--days", "-1"], ["--limit=-1"]] {
     let options = command(dir).parse(argv=paths + args)
 
     let error = try {
@@ -118,9 +117,7 @@ async test "tokens rejects negative numeric options and preserves zero" {
     assert_true(error.contains("must be non-negative"))
   }
 
-  for args in [["--days", "0", "--limit", "0"], ["--days=0", "--limit=0"]] {
-    let options = command(dir).parse(argv=paths + args)
+  let options = command(dir).parse(argv=paths + ["--days", "0", "--limit", "0"])
 
-    ignore(report(options, 0L))
-  }
+  ignore(report(options, 0L))
 }

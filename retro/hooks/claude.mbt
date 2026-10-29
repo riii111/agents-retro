@@ -2,6 +2,7 @@
 pub struct ClaudeLog {
   priv report : Report
   priv fallback_session : String
+  priv since : String
   priv bash_commands : Map[String, String]
 }
 
@@ -16,18 +17,27 @@ pub fn is_claude_candidate(line : BytesView) -> Bool {
 }
 
 ///|
-pub fn Report::claude_log(self : Report, session~ : String) -> ClaudeLog {
-  { report: self, fallback_session: session, bash_commands: Map([]), }
+pub fn Report::claude_log(
+  self : Report,
+  session~ : String,
+  since~ : String,
+) -> ClaudeLog {
+  { report: self, fallback_session: session, since, bash_commands: Map([]), }
 }
 
 ///|
+/// Records before `since` still restore the Bash command table, but add no blocks.
 pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
   guard @records.parse_object(line) is Some(record) else { return }
 
+  let counted = @clock.in_period(
+    @records.string_field(record, "timestamp"),
+    since=self.since,
+  )
   match @records.string_field(record, "type") {
     "assistant" => self.read_assistant(record)
-    "user" => self.read_user(record)
-    "attachment" => self.read_attachment(record)
+    "user" => if counted { self.read_user(record) }
+    "attachment" => if counted { self.read_attachment(record) }
     _ => ()
   }
 }

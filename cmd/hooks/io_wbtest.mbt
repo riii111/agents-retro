@@ -1,4 +1,7 @@
 ///|
+let test_now_ms : Int64 = 1_793_143_854_000L
+
+///|
 async test "hooks reads Claude Code logs including subagent files" {
   let dir = @fs.tmpdir(prefix="hooks-report")
   defer @fs.rmdir(dir, recursive=true)
@@ -7,20 +10,20 @@ async test "hooks reads Claude Code logs including subagent files" {
   @fs.write_file(
     "\{projects}/p/s1.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cat a"}}]}}
-      #|{"type":"user","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"PreToolUse:Bash hook error: Use bat instead of cat!"}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cat a"}}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"PreToolUse:Bash hook error: Use bat instead of cat!"}]}}
     ),
   )
   @fs.write_file(
     "\{projects}/p/s1/subagents/agent-a.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"cat b"}}]}}
-      #|{"type":"user","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":"PreToolUse:Bash hook error: Use bat instead of cat!"}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"cat b"}}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":"PreToolUse:Bash hook error: Use bat instead of cat!"}]}}
     ),
   )
   let matches = command(dir).parse(argv=["--projects", projects])
 
-  let output = report(matches, 7L * 86_400_000L)
+  let output = report(matches, test_now_ms)
 
   assert_true(output.contains("\"records\":2"))
   assert_true(

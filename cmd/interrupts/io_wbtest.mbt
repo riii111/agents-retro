@@ -1,4 +1,7 @@
 ///|
+let test_now_ms : Int64 = 1_793_143_854_000L
+
+///|
 async test "interrupts reads Claude Code logs including subagent files" {
   let dir = @fs.tmpdir(prefix="interrupts-report")
   defer @fs.rmdir(dir, recursive=true)
@@ -7,18 +10,18 @@ async test "interrupts reads Claude Code logs including subagent files" {
   @fs.write_file(
     "\{projects}/p/s1.jsonl",
     (
-      #|{"type":"user","uuid":"u1","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","uuid":"u1","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]}}
     ),
   )
   @fs.write_file(
     "\{projects}/p/s1/subagents/agent-a.jsonl",
     (
-      #|{"type":"user","uuid":"u2","sessionId":"s1","cwd":"/w","isSidechain":true,"message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user for tool use]"}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","uuid":"u2","sessionId":"s1","cwd":"/w","isSidechain":true,"message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user for tool use]"}]}}
     ),
   )
   let matches = command(dir).parse(argv=["--projects", projects])
 
-  let output = report(matches, 7L * 86_400_000L)
+  let output = report(matches, test_now_ms)
 
   assert_true(output.contains("\"records\":2"))
   assert_true(

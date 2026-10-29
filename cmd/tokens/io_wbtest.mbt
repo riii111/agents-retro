@@ -1,4 +1,7 @@
 ///|
+let test_now_ms : Int64 = 1_793_143_854_000L
+
+///|
 async test "tokens reads Claude Code and Codex logs including subagent files" {
   let dir = @fs.tmpdir(prefix="tokens-report")
   defer @fs.rmdir(dir, recursive=true)
@@ -9,26 +12,26 @@ async test "tokens reads Claude Code and Codex logs including subagent files" {
   @fs.write_file(
     "\{projects}/p/s1.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"m1","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":2,"cache_read_input_tokens":3,"output_tokens":4}}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"m1","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":2,"cache_read_input_tokens":3,"output_tokens":4}}}
     ),
   )
   @fs.write_file(
     "\{projects}/p/s1/subagents/agent-a.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":true,"message":{"id":"m2","content":[],"usage":{"input_tokens":10,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":10}}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":true,"message":{"id":"m2","content":[],"usage":{"input_tokens":10,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":10}}}
     ),
   )
   @fs.write_file(
     "\{sessions}/2026/10/28/rollout-c1.jsonl",
     (
-      #|{"type":"token_usage_record","payload":{"response_id":"r1","usage":{"input_tokens":9,"cached_input_tokens":4,"cache_write_input_tokens":0,"output_tokens":1}}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"token_usage_record","payload":{"response_id":"r1","usage":{"input_tokens":9,"cached_input_tokens":4,"cache_write_input_tokens":0,"output_tokens":1}}}
     ),
   )
   let matches = command(dir).parse(argv=[
     "--projects", projects, "--sessions", sessions,
   ])
 
-  let output = report(matches, 7L * 86_400_000L)
+  let output = report(matches, test_now_ms)
 
   assert_true(output.contains("\"records\":3"))
   assert_true(
@@ -37,6 +40,35 @@ async test "tokens reads Claude Code and Codex logs including subagent files" {
     ),
   )
   assert_true(output.contains("\"session\":\"rollout-c1\""))
+}
+
+///|
+async test "tokens leaves out usage dated before the period" {
+  let dir = @fs.tmpdir(prefix="tokens-period")
+  defer @fs.rmdir(dir, recursive=true)
+  let projects = "\{dir}/projects"
+  @fs.mkdir("\{projects}/p", recursive=true)
+  @fs.write_file(
+    "\{projects}/p/s1.jsonl",
+    (
+      #|{"timestamp":"2026-10-01T00:00:00.000Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"old","content":[],"usage":{"input_tokens":1000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1000}}}
+      #|{"timestamp":"2026-10-27T00:00:00.000Z","type":"assistant","sessionId":"s1","cwd":"/w","isSidechain":false,"message":{"id":"fresh","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":2}}}
+    ),
+  )
+  let matches = command(dir).parse(argv=[
+    "--projects",
+    projects,
+    "--sessions",
+    "\{dir}/missing",
+  ])
+
+  let output = report(matches, test_now_ms)
+
+  assert_true(
+    output.contains(
+      "\"total\":{\"responses\":1,\"input\":1,\"cache_creation\":0,\"cache_read\":0,\"output\":2,\"total\":3",
+    ),
+  )
 }
 
 ///|

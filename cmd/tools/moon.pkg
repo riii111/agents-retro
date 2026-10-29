@@ -1,6 +1,7 @@
 import {
   "riii111/agents-retro/retro/tools" @analysis,
   "riii111/agents-retro/cmd/logfiles",
+  "riii111/agents-retro/retro/clock",
   "riii111/agents-retro/cmd/options",
   "moonbitlang/core/argparse",
   "moonbitlang/async/stdio",

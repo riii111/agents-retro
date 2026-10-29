@@ -98,6 +98,8 @@ fn ClaudeLog::read_user(self : ClaudeLog, message : Map[String, Json]) -> Unit {
         }
 
         self.report.add_result(
+          id,
+          source="claude",
           tool,
           @records.content_text(item.get("content")).length(),
         )

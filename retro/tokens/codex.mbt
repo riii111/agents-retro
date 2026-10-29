@@ -96,6 +96,8 @@ fn CodexLog::read_item(self : CodexLog, payload : Map[String, Json]) -> Unit {
       if payload.get("call_id") is Some(String(id)) &&
         self.calls.get(id) is Some(tool) {
         self.report.add_result(
+          id,
+          source="codex",
           tool,
           @records.content_text(payload.get("output")).length(),
         )

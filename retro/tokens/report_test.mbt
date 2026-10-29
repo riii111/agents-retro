@@ -285,3 +285,79 @@ test "report limits each list" {
     ),
   )
 }
+
+///|
+test "report counts a copied tool result once and keeps distinct calls" {
+  let report = @tokens.Report::new()
+  let claude = report.claude_log(session="file-stem")
+  for
+    line in [
+      (
+        #|{"type":"assistant","sessionId":"s1","cwd":"/w","message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Read","input":{}},{"type":"tool_use","id":"t2","name":"Read","input":{}}],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}
+      ),
+      (
+        #|{"type":"user","sessionId":"s1","cwd":"/w","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"abc"}]}}
+      ),
+      (
+        #|{"type":"assistant","sessionId":"s1","cwd":"/w","message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Read","input":{}},{"type":"tool_use","id":"t2","name":"Read","input":{}}],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}
+      ),
+      (
+        #|{"type":"user","sessionId":"s1","cwd":"/w","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"abc"}]}}
+      ),
+      (
+        #|{"type":"user","sessionId":"s1","cwd":"/w","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":"de"}]}}
+      ),
+      (
+        #|{"type":"assistant","sessionId":"s1","cwd":"/w","message":{"id":"m2","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}
+      ),
+    ] {
+    claude.read_line(line)
+  }
+
+  let output = report.to_json(days=7L, records=1, limit=15)
+  assert_true(output.contains("\"total\":{\"responses\":2,"))
+  assert_true(
+    output.contains(
+      "\"tool_results\":[{\"tool\":\"Read\",\"command\":\"\",\"results\":2,\"chars\":5}]",
+    ),
+  )
+  assert_true(
+    output.contains("{\"tool\":\"Read\",\"command\":\"\",\"responses\":1,"),
+  )
+}
+
+///|
+test "report keeps equal call ids from Claude and Codex apart" {
+  let report = @tokens.Report::new()
+  let claude = report.claude_log(session="c")
+  for
+    line in [
+      (
+        #|{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"same","name":"Read","input":{}}]}}
+      ),
+      (
+        #|{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"same","content":"abc"}]}}
+      ),
+    ] {
+    claude.read_line(line)
+  }
+  let codex = report.codex_log(session="x")
+  for
+    line in [
+      (
+        #|{"type":"response_item","payload":{"type":"function_call","name":"exec","call_id":"same"}}
+      ),
+      (
+        #|{"type":"response_item","payload":{"type":"function_call_output","call_id":"same","output":"de"}}
+      ),
+    ] {
+    codex.read_line(line)
+  }
+
+  let output = report.to_json(days=7L, records=2, limit=15)
+  assert_true(
+    output.contains(
+      "\"tool_results\":[{\"tool\":\"Read\",\"command\":\"\",\"results\":1,\"chars\":3},{\"tool\":\"exec\",\"command\":\"\",\"results\":1,\"chars\":2}]",
+    ),
+  )
+}

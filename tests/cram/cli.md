@@ -14,8 +14,8 @@ $ main.exe --version
 `--projects`, `--days` and `--limit` select the logs and shape the JSON on standard output.
 
 ```mooncram
-$ main.exe tools --projects "$TESTDIR/fixtures/cli/projects" --days 3 --limit 5
-{"days":3,"records":1,"total":{"failures":1,"repeats":0,"sidechain_failures":0,"sessions":1},"tools":[{"tool":"Bash","command":"cargo test","failures":1,"repeats":0,"sidechain_failures":0,"sessions":1}]}
+$ main.exe tools --projects "$TESTDIR/fixtures/cli/projects" --days 3650 --limit 5
+{"days":3650,"records":1,"total":{"failures":1,"repeats":0,"sidechain_failures":0,"sessions":1},"tools":[{"tool":"Bash","command":"cargo test","failures":1,"repeats":0,"sidechain_failures":0,"sessions":1}]}
 ```
 
 ## Unknown subcommand

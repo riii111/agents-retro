@@ -37,8 +37,8 @@ pub async fn each_line(path : String, handle : (BytesView) -> Unit) -> Unit {
 }
 
 ///|
-/// Hands `read` the decoded lines that pass the cheap `is_candidate` pre-filter,
-/// so the JSON parser only sees lines that can matter.
+/// Hands `read` the decoded lines that pass the cheap `is_candidate` pre-filter, so the JSON parser only sees lines that can matter.
+/// Pre-filters match byte patterns of the compact JSON that Claude Code and Codex write, so key order and spacing are assumed fixed.
 pub async fn each_candidate(
   path : String,
   is_candidate : (BytesView) -> Bool,

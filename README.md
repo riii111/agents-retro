@@ -49,7 +49,7 @@ agents-retro tokens --days 7 --limit 15
 
 | Command | What it counts |
 | --- | --- |
-| `tokens` | Token use by project, session, and preceding tool call, plus the largest tool results |
+| `tokens` | Token use by project, session, and preceding tool call, plus the largest tool results, whose `chars` counts UTF-16 code units |
 | `hooks` | Operations blocked by hooks, by message, tool, and command |
 | `skills` | Skill and subagent calls, plus installed skills never used |
 | `interrupts` | Your interruptions and rejected tool calls, by project and session |

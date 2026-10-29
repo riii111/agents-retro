@@ -22,8 +22,8 @@ pub fn CodexLog::read_line(Self, StringView) -> Unit
 pub struct Report {
   // private fields
 }
-pub fn Report::claude_log(Self, session~ : String) -> ClaudeLog
-pub fn Report::codex_log(Self, session~ : String) -> CodexLog
+pub fn Report::claude_log(Self, session~ : String, since~ : String) -> ClaudeLog
+pub fn Report::codex_log(Self, session~ : String, since~ : String) -> CodexLog
 pub fn Report::new() -> Self
 pub fn Report::to_json(Self, days~ : Int64, records~ : Int32, limit~ : Int32) -> String
 

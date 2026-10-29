@@ -2,6 +2,7 @@
 pub struct ClaudeLog {
   priv report : Report
   priv fallback_session : String
+  priv since : String
   priv calls : Map[String, Tool]
   priv mut previous : Tool
 }
@@ -16,20 +17,35 @@ pub fn is_claude_candidate(line : BytesView) -> Bool {
 }
 
 ///|
-pub fn Report::claude_log(self : Report, session~ : String) -> ClaudeLog {
-  { report: self, fallback_session: session, calls: Map([]), previous: prompt, }
+pub fn Report::claude_log(
+  self : Report,
+  session~ : String,
+  since~ : String,
+) -> ClaudeLog {
+  {
+    report: self,
+    fallback_session: session,
+    since,
+    calls: Map([]),
+    previous: prompt,
+  }
 }
 
 ///|
+/// Records before `since` still restore the call table and the previous tool, but add no usage or results.
 pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
   guard @records.parse_object(line) is Some(record) &&
     record.get("message") is Some(Object(message)) else {
     return
   }
 
+  let counted = @clock.in_period(
+    @records.string_field(record, "timestamp"),
+    since=self.since,
+  )
   match @records.string_field(record, "type") {
-    "assistant" => self.read_assistant(record, message)
-    "user" => self.read_user(message)
+    "assistant" => self.read_assistant(record, message, counted~)
+    "user" => self.read_user(message, counted~)
     _ => ()
   }
 }
@@ -39,6 +55,7 @@ fn ClaudeLog::read_assistant(
   self : ClaudeLog,
   record : Map[String, Json],
   message : Map[String, Json],
+  counted~ : Bool,
 ) -> Unit {
   if message.get("content") is Some(Array(content)) {
     for item in content {
@@ -59,7 +76,7 @@ fn ClaudeLog::read_assistant(
     }
   }
 
-  guard message.get("usage") is Some(Object(usage)) else { return }
+  guard counted && message.get("usage") is Some(Object(usage)) else { return }
 
   let session = @records.string_field(record, "sessionId")
   let project = @records.string_field(record, "cwd")
@@ -80,7 +97,11 @@ fn ClaudeLog::read_assistant(
 }
 
 ///|
-fn ClaudeLog::read_user(self : ClaudeLog, message : Map[String, Json]) -> Unit {
+fn ClaudeLog::read_user(
+  self : ClaudeLog,
+  message : Map[String, Json],
+  counted~ : Bool,
+) -> Unit {
   match message.get("content") {
     Some(String(_)) => self.previous = prompt
     Some(Array(content)) =>
@@ -97,10 +118,14 @@ fn ClaudeLog::read_user(self : ClaudeLog, message : Map[String, Json]) -> Unit {
           continue
         }
 
-        self.report.add_result(
-          tool,
-          @records.content_text(item.get("content")).length(),
-        )
+        if counted {
+          self.report.add_result(
+            id,
+            source="claude",
+            tool,
+            @records.content_text(item.get("content")).length(),
+          )
+        }
         self.previous = tool
       }
     _ => ()

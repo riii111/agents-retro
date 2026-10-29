@@ -1,6 +1,7 @@
 ///|
 pub struct ClaudeLog {
   priv report : Report
+  priv since : String
   priv calls : Map[String, Tool]
   priv mut previous : Tool
 }
@@ -18,12 +19,13 @@ pub fn is_claude_candidate(line : BytesView) -> Bool {
 }
 
 ///|
-pub fn Report::claude_log(self : Report) -> ClaudeLog {
-  { report: self, calls: Map([]), previous: no_tool, }
+pub fn Report::claude_log(self : Report, since~ : String) -> ClaudeLog {
+  { report: self, since, calls: Map([]), previous: no_tool, }
 }
 
 ///|
 /// `previous` is the last tool call since the latest user prompt, which is the call an interruption cut short.
+/// Records before `since` still restore the call table and `previous`, but add no events.
 pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
   guard @records.parse_object(line) is Some(record) &&
     record.get("message") is Some(Object(message)) else {
@@ -128,6 +130,13 @@ fn ClaudeLog::add(
   event : Event,
   tool : Tool,
 ) -> Unit {
+  guard @clock.in_period(
+    @records.string_field(record, "timestamp"),
+    since=self.since,
+  ) else {
+    return
+  }
+
   let session = @records.string_field(record, "sessionId")
   let project = @records.string_field(record, "cwd")
   self.report.add_event(

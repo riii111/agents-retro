@@ -2,6 +2,7 @@
 pub struct ClaudeLog {
   priv report : Report
   priv fallback_session : String
+  priv since : String
   priv calls : Map[String, Call]
 }
 
@@ -16,11 +17,16 @@ pub fn is_claude_candidate(line : BytesView) -> Bool {
 
 ///|
 /// A log is one file: a conversation or one subagent.
-pub fn Report::claude_log(self : Report, session~ : String) -> ClaudeLog {
-  { report: self, fallback_session: session, calls: Map([]), }
+pub fn Report::claude_log(
+  self : Report,
+  session~ : String,
+  since~ : String,
+) -> ClaudeLog {
+  { report: self, fallback_session: session, since, calls: Map([]), }
 }
 
 ///|
+/// Records before `since` still restore the call table, but add no failures.
 pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
   guard @records.parse_object(line) is Some(record) &&
     record.get("message") is Some(Object(message)) &&
@@ -28,9 +34,13 @@ pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
     return
   }
 
+  let counted = @clock.in_period(
+    @records.string_field(record, "timestamp"),
+    since=self.since,
+  )
   match @records.string_field(record, "type") {
     "assistant" => self.read_tool_uses(content)
-    "user" => self.read_tool_results(record, content)
+    "user" => if counted { self.read_tool_results(record, content) }
     _ => ()
   }
 }

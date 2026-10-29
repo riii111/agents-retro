@@ -1,6 +1,7 @@
 ///|
 pub struct CodexLog {
   priv report : Report
+  priv since : String
   priv calls : Map[String, Tool]
   priv mut session : String
   priv mut project : String
@@ -17,9 +18,14 @@ pub fn is_codex_candidate(line : BytesView) -> Bool {
 }
 
 ///|
-pub fn Report::codex_log(self : Report, session~ : String) -> CodexLog {
+pub fn Report::codex_log(
+  self : Report,
+  session~ : String,
+  since~ : String,
+) -> CodexLog {
   {
     report: self,
+    since,
     calls: Map([]),
     session,
     project: "(unknown)",
@@ -30,16 +36,21 @@ pub fn Report::codex_log(self : Report, session~ : String) -> CodexLog {
 
 ///|
 /// Token usage is read from `token_usage_record` lines, which carry one entry per model response.
+/// Records before `since` still restore the session, the call table and the previous tool, but add no usage or results.
 pub fn CodexLog::read_line(self : CodexLog, line : StringView) -> Unit {
   guard @records.parse_object(line) is Some(record) &&
     record.get("payload") is Some(Object(payload)) else {
     return
   }
 
+  let counted = @clock.in_period(
+    @records.string_field(record, "timestamp"),
+    since=self.since,
+  )
   match @records.string_field(record, "type") {
     "session_meta" => self.read_meta(payload)
-    "token_usage_record" => self.read_usage(payload)
-    "response_item" => self.read_item(payload)
+    "token_usage_record" => if counted { self.read_usage(payload) }
+    "response_item" => self.read_item(payload, counted~)
     _ => ()
   }
 }
@@ -83,7 +94,11 @@ fn CodexLog::read_usage(self : CodexLog, payload : Map[String, Json]) -> Unit {
 }
 
 ///|
-fn CodexLog::read_item(self : CodexLog, payload : Map[String, Json]) -> Unit {
+fn CodexLog::read_item(
+  self : CodexLog,
+  payload : Map[String, Json],
+  counted~ : Bool,
+) -> Unit {
   match @records.string_field(payload, "type") {
     "function_call" | "custom_tool_call" =>
       if payload.get("call_id") is Some(String(id)) {
@@ -95,10 +110,14 @@ fn CodexLog::read_item(self : CodexLog, payload : Map[String, Json]) -> Unit {
     "function_call_output" | "custom_tool_call_output" =>
       if payload.get("call_id") is Some(String(id)) &&
         self.calls.get(id) is Some(tool) {
-        self.report.add_result(
-          tool,
-          @records.content_text(payload.get("output")).length(),
-        )
+        if counted {
+          self.report.add_result(
+            id,
+            source="codex",
+            tool,
+            @records.content_text(payload.get("output")).length(),
+          )
+        }
         self.previous = tool
       }
     "message" =>

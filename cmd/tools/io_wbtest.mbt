@@ -1,4 +1,7 @@
 ///|
+let test_now_ms : Int64 = 1_793_143_854_000L
+
+///|
 async test "tools reads conversation and subagent logs" {
   let dir = @fs.tmpdir(prefix="tools-report")
   defer @fs.rmdir(dir, recursive=true)
@@ -7,20 +10,20 @@ async test "tools reads conversation and subagent logs" {
   @fs.write_file(
     "\{projects}/p/s1.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cargo test"}}]}}
-      #|{"type":"user","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"Exit code 1\nfailed"}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cargo test"}}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"Exit code 1\nfailed"}]}}
     ),
   )
   @fs.write_file(
     "\{projects}/p/s1/subagents/agent-a.jsonl",
     (
-      #|{"type":"assistant","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_use","id":"t2","name":"Read","input":{"file_path":"/x"}}]}}
-      #|{"type":"user","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":"File does not exist."}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"assistant","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_use","id":"t2","name":"Read","input":{"file_path":"/x"}}]}}
+      #|{"timestamp":"2026-10-27T10:00:00.000Z","type":"user","sessionId":"s1","isSidechain":true,"message":{"content":[{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":"File does not exist."}]}}
     ),
   )
   let matches = command(dir).parse(argv=["--projects", projects])
 
-  let output = report(matches, 7L * 86_400_000L)
+  let output = report(matches, test_now_ms)
 
   assert_true(output.contains("\"records\":2"))
   assert_true(

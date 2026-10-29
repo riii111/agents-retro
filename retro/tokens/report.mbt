@@ -1,6 +1,7 @@
 ///|
 pub struct Report {
   priv seen : Set[String]
+  priv seen_results : Set[String]
   priv total : Tally
   priv projects : Map[String, Tally]
   priv project_sessions : Map[String, Set[String]]
@@ -13,6 +14,7 @@ pub struct Report {
 pub fn Report::new() -> Report {
   {
     seen: Set([]),
+    seen_results: Set([]),
     total: Tally::new(),
     projects: Map([]),
     project_sessions: Map([]),
@@ -57,7 +59,16 @@ fn Report::add_response(
 }
 
 ///|
-fn Report::add_result(self : Report, tool : Tool, chars : Int32) -> Unit {
+/// Resumed or branched logs copy earlier results, so a call id is counted once per source.
+fn Report::add_result(
+  self : Report,
+  id : String,
+  source~ : String,
+  tool : Tool,
+  chars : Int32,
+) -> Unit {
+  guard self.seen_results.add_and_check("\{source}/\{id}") else { return }
+
   let size = self.result_sizes.get_or_init(tool, ResultSize::new)
   size.results += 1
   size.chars += chars.to_int64()

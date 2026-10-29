@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/agents-retro/retro/clock"
+
+// Values
+pub fn in_period(String, since~ : String) -> Bool
+
+pub fn utc_date(Int64) -> String
+
+pub fn utc_millis_timestamp(Int64) -> String
+
+pub fn utc_millisecond(Int64) -> Int64
+
+pub fn utc_timestamp(Int64) -> String
+
+pub fn zero_pad(Int64, Int32) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

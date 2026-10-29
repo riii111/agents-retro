@@ -28,7 +28,10 @@ pub fn ClaudeLog::read_line(self : ClaudeLog, line : StringView) -> Unit {
     return
   }
 
-  guard in_period(@records.string_field(record, "timestamp"), since=self.since) else {
+  guard @clock.in_period(
+    @records.string_field(record, "timestamp"),
+    since=self.since,
+  ) else {
     return
   }
 

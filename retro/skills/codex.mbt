@@ -34,7 +34,10 @@ pub fn CodexLog::read_line(self : CodexLog, line : StringView) -> Unit {
   match @records.string_field(record, "type") {
     "session_meta" => self.read_meta(payload)
     "response_item" =>
-      if in_period(@records.string_field(record, "timestamp"), since=self.since) {
+      if @clock.in_period(
+          @records.string_field(record, "timestamp"),
+          since=self.since,
+        ) {
         self.read_item(payload)
       }
     _ => ()

@@ -1,11 +1,15 @@
 ///|
+let test_since : String = "2026-10-20T00:00:00"
+
+///|
 fn use_line(
   id : String,
   name : String,
   input : String,
   session~ : String = "s1",
+  timestamp~ : String = "2026-10-27T10:00:00.000Z",
 ) -> String {
-  "{\"type\":\"assistant\",\"sessionId\":\"\{session}\",\"isSidechain\":false,\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"\{id}\",\"name\":\"\{name}\",\"input\":\{input}}]}}"
+  "{\"timestamp\":\"\{timestamp}\",\"type\":\"assistant\",\"sessionId\":\"\{session}\",\"isSidechain\":false,\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"\{id}\",\"name\":\"\{name}\",\"input\":\{input}}]}}"
 }
 
 ///|
@@ -15,8 +19,9 @@ fn result_line(
   error~ : Bool,
   sidechain~ : Bool,
   session~ : String = "s1",
+  timestamp~ : String = "2026-10-27T10:00:00.000Z",
 ) -> String {
-  "{\"type\":\"user\",\"sessionId\":\"\{session}\",\"isSidechain\":\{sidechain},\"message\":{\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"\{id}\",\"is_error\":\{error},\"content\":\"\{content}\"}]}}"
+  "{\"timestamp\":\"\{timestamp}\",\"type\":\"user\",\"sessionId\":\"\{session}\",\"isSidechain\":\{sidechain},\"message\":{\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"\{id}\",\"is_error\":\{error},\"content\":\"\{content}\"}]}}"
 }
 
 ///|
@@ -53,7 +58,7 @@ fn failure_lines() -> Array[String] {
 ///|
 test "report counts failed calls by tool and command head and skips refusals" {
   let report = @tools.Report::new()
-  let log = report.claude_log(session="file-stem")
+  let log = report.claude_log(session="file-stem", since=test_since)
   for line in failure_lines() {
     log.read_line(line)
   }
@@ -111,7 +116,7 @@ fn read_failure(
   session~ : String,
   sidechain~ : Bool,
 ) -> Unit {
-  let log = report.claude_log(session=file)
+  let log = report.claude_log(session=file, since=test_since)
   log.read_line(use_line(id, "Bash", "{\"command\":\"make\"}", session~))
   log.read_line(
     result_line(id, "Exit code 1", error=true, sidechain~, session~),
@@ -172,7 +177,7 @@ test "report counts a copied tool use id once" {
 ///|
 test "report limits the tool list" {
   let report = @tools.Report::new()
-  let log = report.claude_log(session="file-stem")
+  let log = report.claude_log(session="file-stem", since=test_since)
   for line in failure_lines() {
     log.read_line(line)
   }
@@ -182,6 +187,32 @@ test "report limits the tool list" {
     json.stringify(),
     content=(
       #|{"days":7,"records":1,"total":{"failures":5,"repeats":1,"sidechain_failures":1,"sessions":1},"tools":[{"tool":"Bash","command":"cargo test","failures":3,"repeats":1,"sidechain_failures":1,"sessions":1}]}
+    ),
+  )
+}
+
+///|
+test "report counts only failures dated in the period and keeps earlier calls" {
+  let report = @tools.Report::new()
+  let log = report.claude_log(session="file-stem", since=test_since)
+  let old = "2026-10-01T10:00:00.000Z"
+  log.read_line(use_line("t1", "Bash", "{\"command\":\"make\"}", timestamp=old))
+  log.read_line(use_line("t2", "Bash", "{\"command\":\"make\"}", timestamp=old))
+  log.read_line(
+    result_line("t2", "Exit code 1", error=true, sidechain=false, timestamp=old),
+  )
+  log.read_line(result_line("t1", "Exit code 1", error=true, sidechain=false))
+  log.read_line(
+    (
+      #|{"type":"user","sessionId":"s1","isSidechain":false,"message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"no timestamp"}]}}
+    ),
+  )
+
+  inspect(
+    report.to_json(days=7L, records=1, limit=15),
+    content=(
+      #|{"days":7,"records":1,"total":{"failures":1,"repeats":0,"sidechain_failures":0,"sessions":1},"tools":[{"tool":"Bash","command":"make","failures":1,"repeats":0,"sidechain_failures":0,"sessions":1}]}
+      #|
     ),
   )
 }

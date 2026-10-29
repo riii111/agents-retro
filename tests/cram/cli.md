@@ -12,10 +12,15 @@ $ main.exe --version
 ## Arguments reach the report
 
 `--projects`, `--days` and `--limit` select the logs and shape the JSON on standard output.
+The fixture has no timestamps, so a copy gets the current UTC time on every record and a current file modification time.
 
 ```mooncram
-$ main.exe tools --projects "$TESTDIR/fixtures/cli/projects" --days 3650 --limit 5
-{"days":3650,"records":1,"total":{"failures":1,"repeats":0,"sidechain_failures":0,"sessions":1},"tools":[{"tool":"Bash","command":"cargo test","failures":1,"repeats":0,"sidechain_failures":0,"sessions":1}]}
+$ mkdir projects && sed "s/^{/{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\",/" "$TESTDIR/fixtures/cli/projects/demo/s1.jsonl" > projects/s1.jsonl
+```
+
+```mooncram
+$ main.exe tools --projects projects --days 3 --limit 5
+{"days":3,"records":1,"total":{"failures":1,"repeats":0,"sidechain_failures":0,"sessions":1},"tools":[{"tool":"Bash","command":"cargo test","failures":1,"repeats":0,"sidechain_failures":0,"sessions":1}]}
 ```
 
 ## Unknown subcommand

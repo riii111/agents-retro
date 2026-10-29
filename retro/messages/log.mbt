@@ -1,5 +1,5 @@
 ///|
-pub(all) struct RawMessage {
+struct RawMessage {
   ts : String
   app : String
   role : String

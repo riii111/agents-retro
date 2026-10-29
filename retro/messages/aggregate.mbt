@@ -1,5 +1,5 @@
 ///|
-pub(all) struct PatternCount {
+struct PatternCount {
   name : String
   messages : Int32
   sessions : Int32

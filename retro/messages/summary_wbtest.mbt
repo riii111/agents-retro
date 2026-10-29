@@ -1,5 +1,5 @@
 ///|
-fn summary_metrics() -> @messages.Metrics {
+fn summary_metrics() -> Metrics {
   {
     since: "s",
     messages: 3,
@@ -32,7 +32,7 @@ test "format_summary without a previous run" {
     #|Messages (full text, line number = id): o/m.tsv
 
   assert_eq(
-    @messages.format_summary(
+    format_summary(
       summary_metrics(),
       None,
       examples_path="o/e.tsv",
@@ -45,12 +45,12 @@ test "format_summary without a previous run" {
 
 ///|
 test "format_summary compares with the previous run" {
-  let previous : @messages.PreviousMetrics = {
+  let previous : PreviousMetrics = {
     date: "2026-10-17",
     patterns: { "review": { name: "review", messages: 5, sessions: 3, } },
   }
 
-  let summary = @messages.format_summary(
+  let summary = format_summary(
     summary_metrics(),
     Some(previous),
     examples_path="o/e.tsv",

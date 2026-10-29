@@ -1,5 +1,5 @@
 ///|
-pub(all) struct PatternHits {
+struct PatternHits {
   name : String
   messages : Array[Message]
 }

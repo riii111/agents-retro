@@ -53,15 +53,7 @@ pub struct CodexSession {
 pub fn CodexSession::new(String) -> Self
 pub fn CodexSession::read_line(Self, StringView) -> RawMessage?
 
-pub(all) struct Message {
-  id : Int32
-  ts : String
-  app : String
-  role : String
-  session : String
-  cwd : String
-  text : String
-}
+type Message
 
 pub(all) struct Metrics {
   since : String
@@ -74,30 +66,13 @@ pub(all) struct Metrics {
 }
 pub fn Metrics::to_json(Self) -> String
 
-pub(all) struct PatternCount {
-  name : String
-  messages : Int32
-  sessions : Int32
-}
+type PatternCount
 
-pub(all) struct PatternHits {
-  name : String
-  messages : Array[Message]
-}
+type PatternHits
 
-pub(all) struct PreviousMetrics {
-  date : String
-  patterns : Map[String, PatternCount]
-}
+type PreviousMetrics
 
-pub(all) struct RawMessage {
-  ts : String
-  app : String
-  role : String
-  session : String
-  cwd : String
-  raw : String
-}
+type RawMessage
 
 // Type aliases
 

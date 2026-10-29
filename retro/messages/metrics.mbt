@@ -10,7 +10,7 @@ pub(all) struct Metrics {
 }
 
 ///|
-pub(all) struct PreviousMetrics {
+struct PreviousMetrics {
   date : String
   patterns : Map[String, PatternCount]
 }

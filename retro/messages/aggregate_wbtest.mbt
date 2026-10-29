@@ -1,5 +1,5 @@
 ///|
-fn msg(id : Int32, text : String, session~ : String) -> @messages.Message {
+fn msg(id : Int32, text : String, session~ : String) -> Message {
   {
     id,
     ts: "2026-10-20T01:23:45.000Z",
@@ -12,12 +12,10 @@ fn msg(id : Int32, text : String, session~ : String) -> @messages.Message {
 }
 
 ///|
-fn review_hits(
-  messages : Array[@messages.Message],
-) -> Array[@messages.PatternHits] raise {
+fn review_hits(messages : Array[Message]) -> Array[PatternHits] raise {
   let source =
     #|{"review": "CR|CodeRabbit", "conflict": "コンフリクト"}
-  @messages.match_patterns(messages, @messages.parse_patterns(source))
+  match_patterns(messages, parse_patterns(source))
 }
 
 ///|
@@ -30,7 +28,7 @@ test "count_patterns counts messages and distinct sessions" {
   ])
 
   assert_eq(
-    @messages.count_patterns(hits).map((c : @messages.PatternCount) => {
+    count_patterns(hits).map((c : PatternCount) => {
       (c.name, c.messages, c.sessions)
     }),
     [("review", 3, 2), ("conflict", 0, 0)],
@@ -46,7 +44,7 @@ test "pattern_examples takes up to three messages from distinct sessions" {
     msg(4, "CR 4", session="c"),
     msg(5, "CR 5", session="d"),
   ])
-  assert_eq(@messages.pattern_examples(hits).map(e => (e.0, e.1.id)), [
+  assert_eq(pattern_examples(hits).map(e => (e.0, e.1.id)), [
     ("review", 1),
     ("review", 3),
     ("review", 4),
@@ -60,12 +58,12 @@ test "unmatched_chunks keeps unmatched messages in order, 100 per chunk" {
     msg(id, if id % 5 == 0 { "CR" } else { "other" }, session="s")
   })
 
-  let chunks = @messages.unmatched_chunks(messages, review_hits(messages))
+  let chunks = unmatched_chunks(messages, review_hits(messages))
 
   assert_eq(chunks.map(c => c.length()), [100, 100])
   assert_eq(chunks[0][0].id, 1)
   assert_eq(chunks[0][4].id, 6)
-  assert_eq(@messages.unmatched_chunks([], review_hits([])).length(), 0)
+  assert_eq(unmatched_chunks([], review_hits([])).length(), 0)
 }
 
 ///|
@@ -77,7 +75,7 @@ test "count_by_role sorts keys lexicographically" {
     { ..msg(4, "d", session="s"), app: "claude", role: "main", },
   ]
 
-  assert_eq(@messages.count_by_role(messages), [
+  assert_eq(count_by_role(messages), [
     ("claude/main", 2),
     ("claude/worker", 1),
     ("codex/user", 1),

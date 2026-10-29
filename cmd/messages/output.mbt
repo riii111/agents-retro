@@ -16,12 +16,15 @@ async fn write_unmatched_chunks(
   for i, chunk in chunks {
     let number = if i < 9 { "0\{i + 1}" } else { "\{i + 1}" }
     let path = "\{out_dir}/\{prefix}\{number}.tsv"
-    write_lines(path, chunk.map(@analysis.unmatched_tsv_line))
+    write_lines(path, chunk.iter().map(@analysis.unmatched_tsv_line))
     paths.push(path)
   }
 
   paths
 }
+
+///|
+let write_buffer_bytes : Int32 = 1 << 16
 
 ///|
 async fn previous_metrics(
@@ -44,12 +47,16 @@ async fn previous_metrics(
 }
 
 ///|
-async fn write_lines(path : String, lines : Array[String]) -> Unit {
-  let out = StringBuilder()
+/// Streams through a fixed-size buffer so the formatted lines never exist as one array or one string.
+async fn write_lines(path : String, lines : Iter[String]) -> Unit {
+  let file = @fs.create(path)
+  defer file.close()
+
+  let out = @io.BufferedWriter::new(file, size=write_buffer_bytes)
   for line in lines {
-    out.write_string(line)
-    out.write_char('\n')
+    out.write(line)
+    out.write("\n")
   }
 
-  @fs.write_file(path, out.to_string())
+  out.flush()
 }

@@ -1,0 +1,9 @@
+{"type":"user","timestamp":"2026-10-20T01:00:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":"レビューをお願いします"}}
+{"type":"user","timestamp":"2026-10-20T02:00:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":[{"type":"text","text":"  fix the\ttyped  bug\nplease"},{"type":"text","text":"second part\n"}]}}
+{"type":"user","timestamp":"2026-10-20T02:10:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":"sidechain text"},"isSidechain":true}
+{"type":"user","timestamp":"2026-10-20T02:20:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":"meta text"},"isMeta":true}
+{"type":"user","timestamp":"2026-10-20T02:30:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":"<command-name>/clear</command-name>"}}
+{"type":"assistant","timestamp":"2026-10-20T02:40:00.000Z","message":{"role":"assistant","content":"user asked for a fix"}}
+{"type":"user","timestamp":"2026-10-20T03:00:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":"ところで今日の天気は"}}
+{"type":"user","timestamp":"1970-01-02T00:00:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":"ancient fix"}}
+{"type":"user","timestamp":"2026-10-20T06:00:00.000Z","cwd":"/Users/me/work/app","message":{"role":"user","content":"ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"}}

@@ -1,5 +1,5 @@
 ///|
-pub(all) struct Message {
+struct Message {
   id : Int32
   ts : String
   app : String

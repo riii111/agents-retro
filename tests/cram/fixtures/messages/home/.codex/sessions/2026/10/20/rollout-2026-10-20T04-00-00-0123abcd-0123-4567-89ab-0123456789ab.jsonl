@@ -1,0 +1,4 @@
+{"timestamp":"2026-10-20T04:00:00.000Z","type":"session_meta","payload":{"thread_source":"user","cwd":"/Users/me/work/cx"}}
+{"timestamp":"2026-10-20T04:01:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"review the diff"}]}}
+{"timestamp":"2026-10-20T04:02:00.000Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"review developer note"}]}}
+{"timestamp":"2026-10-20T04:03:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions for /Users/me/work/cx"}]}}

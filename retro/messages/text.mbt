@@ -5,26 +5,31 @@ pub fn take_chars(text : StringView, n : Int32) -> String {
 
 ///|
 pub fn take_last_chars(text : StringView, n : Int32) -> String {
-  let chars : Array[Char] = text.iter().collect()
-
-  String::from_array(
-    chars[if chars.length() > n { chars.length() - n } else { 0 }:],
-  )
+  let chars : Array[Char] = text.rev_iter().take(n).collect()
+  chars.rev_in_place()
+  String::from_array(chars)
 }
 
 ///|
+/// Trims the Python `str.isspace` set from both ends without expanding the whole text.
 fn trim(text : StringView) -> String {
-  let chars = text.iter().collect()
   let mut start = 0
-  let mut end = chars.length()
-  while start < end && @whitespace.is_space(chars[start]) {
-    start += 1
-  }
-  while end > start && @whitespace.is_space(chars[end - 1]) {
-    end -= 1
+  for c in text {
+    if !@whitespace.is_space(c) {
+      break
+    }
+    start += c.utf16_len()
   }
 
-  String::from_array(chars[start:end])
+  let mut end = text.length()
+  for c in text[start:].rev_iter() {
+    if !@whitespace.is_space(c) {
+      break
+    }
+    end -= c.utf16_len()
+  }
+
+  text[start:end].to_owned()
 }
 
 ///|

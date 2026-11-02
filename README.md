@@ -6,10 +6,11 @@ agents-retro reads local Claude Code and Codex logs to show what keeps interrupt
 
 ## Install
 
-Download the binary from the [latest release](https://github.com/riii111/agents-retro/releases/latest) (macOS, Apple silicon):
+Download the binary from the [latest release](https://github.com/riii111/agents-retro/releases/latest). It supports macOS (Apple silicon) and Linux (x86_64):
 
 ```sh
-curl -fsSL https://github.com/riii111/agents-retro/releases/latest/download/agents-retro-darwin-arm64.tar.gz | tar -xz
+target=darwin-arm64   # or linux-x86_64
+curl -fsSL "https://github.com/riii111/agents-retro/releases/latest/download/agents-retro-$target.tar.gz" | tar -xz
 mkdir -p ~/.local/bin
 install -m 755 agents-retro ~/.local/bin/agents-retro
 ```

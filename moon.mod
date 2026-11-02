@@ -12,7 +12,7 @@ keywords = [ ]
 
 preferred_target = "native"
 
-description = "Collect the messages you typed to Claude Code and Codex for a weekly retro"
+description = "Find repeated instructions and permission interruptions in Claude Code and Codex logs"
 
 import {
   "moonbitlang/async@0.22.5",

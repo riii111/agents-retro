@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach binaries to
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  binaries:
+    name: Binary (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: darwin-arm64
+          - os: ubuntu-24.04
+            target: linux-x86_64
+    env:
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      ASSET: agents-retro-${{ matrix.target }}.tar.gz
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        shell: nix develop --no-write-lock-file --command bash -euo pipefail {0}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+          persist-credentials: false
+      - uses: cachix/install-nix-action@d9186cbdca7adedf113a159fa91f725a27866771 # v31
+      - name: Install dependencies
+        run: moon update
+      - name: Build native release
+        run: moon build --target native --release
+      - name: Package
+        run: |
+          mkdir dist
+          cp _build/native/release/build/cmd/main/main.exe dist/agents-retro
+          tar -C dist -czf "$ASSET" agents-retro
+          shasum -a 256 "$ASSET" > "$ASSET.sha256"
+      - name: Upload to release
+        run: gh release upload "$TAG" "$ASSET" "$ASSET.sha256" --clobber --repo "$GITHUB_REPOSITORY"

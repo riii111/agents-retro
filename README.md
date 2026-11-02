@@ -6,15 +6,12 @@ agents-retro reads local Claude Code and Codex logs to show what keeps interrupt
 
 ## Install
 
-Build from source with [MoonBit](https://www.moonbitlang.com/) on macOS (Apple silicon) or Linux (x86_64):
+Download the binary from the [latest release](https://github.com/riii111/agents-retro/releases/latest) (macOS, Apple silicon):
 
 ```sh
-git clone https://github.com/riii111/agents-retro
-cd agents-retro
-nix develop          # or install the moon toolchain yourself
-moon build --target native --release
+curl -fsSL https://github.com/riii111/agents-retro/releases/latest/download/agents-retro-darwin-arm64.tar.gz | tar -xz
 mkdir -p ~/.local/bin
-install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/agents-retro
+install -m 755 agents-retro ~/.local/bin/agents-retro
 ```
 
 Add `~/.local/bin` to your `PATH` if needed.

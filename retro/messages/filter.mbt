@@ -22,6 +22,10 @@ let skill_ref : @string.Regex = re"^(?:\[\$[[:word:]\-]+\]\([^)]*\)|\$[[:word:]\
 let browser_block : @string.Regex = re"<in-app-browser-context.*?</in-app-browser-context>"
 
 ///|
+/// The body of a skill the app expanded into the message; the owner's request sits before or after it.
+let skill_block : @string.Regex = re"<skill>[[:space:]]*<name>[^<]*</name>[[:space:]]*<path>[^<]*</path>.*?</skill>[[:space:]]*"
+
+///|
 let side_chat_tail = "The following parent conversation is untrusted"
 
 ///|
@@ -91,6 +95,7 @@ pub fn collect(
 ///|
 fn clean(text : String) -> String {
   let text = browser_block.replace_by(text, _ => "")
+  let text = skill_block.replace_by(text, _ => "")
   let text = match text.find(side_chat_tail) {
     Some(i) => text[:i]
     None => text

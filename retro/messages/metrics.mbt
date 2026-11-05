@@ -7,12 +7,19 @@ pub(all) struct Metrics {
   by_role : Array[(String, Int32)]
   unmatched : Int32
   patterns : Array[PatternCount]
+  /// Set only by the options that add period-aware output; plain runs keep the original layout.
+  period : Period?
+  apps : Array[AppCount]
+  weeks : Array[Week]
+  candidates : Array[CandidateCount]
 }
 
 ///|
 struct PreviousMetrics {
   date : String
   patterns : Map[String, PatternCount]
+  period : Period?
+  candidates : Map[String, CandidateCount]
 }
 
 ///|
@@ -26,21 +33,47 @@ pub fn Metrics::to_json(self : Metrics) -> String {
     (c.name, json_object(counts, depth=2))
   })
 
-  json_object(
-    [
-      ("since", json_string(self.since)),
-      ("messages", self.messages.to_string()),
-      ("sessions", self.sessions.to_string()),
-      ("delegated", self.delegated.to_string()),
-      (
-        "by_role",
-        json_object(self.by_role.map(e => (e.0, e.1.to_string())), depth=1),
-      ),
-      ("unmatched", self.unmatched.to_string()),
-      ("patterns", json_object(patterns, depth=1)),
-    ],
-    depth=0,
-  )
+  let fields = [
+    ("since", json_string(self.since)),
+    ("messages", self.messages.to_string()),
+    ("sessions", self.sessions.to_string()),
+    ("delegated", self.delegated.to_string()),
+    (
+      "by_role",
+      json_object(self.by_role.map(e => (e.0, e.1.to_string())), depth=1),
+    ),
+    ("unmatched", self.unmatched.to_string()),
+    ("patterns", json_object(patterns, depth=1)),
+  ]
+  if self.period is Some(p) {
+    let basis = [
+      ("basis", json_string(p.basis)),
+      ("week_start", json_string(p.week_start)),
+      ("days", p.days.to_string()),
+      ("until", json_string(p.until)),
+    ]
+    fields.push(("period", json_object(basis, depth=1)))
+    if !self.candidates.is_empty() {
+      let entries = self.candidates.map(c => {
+        let counts = [
+          ("messages", c.messages.to_string()),
+          ("sessions", c.sessions.to_string()),
+          ("outside_patterns", c.outside_patterns.to_string()),
+          ("first_seen", json_string(c.first_seen)),
+        ]
+        (c.name, json_object(counts, depth=2))
+      })
+      fields.push(("candidates", json_object(entries, depth=1)))
+    }
+    if !self.apps.is_empty() {
+      fields.push(("apps", apps_json(self.apps, depth=1)))
+    }
+    if !self.weeks.is_empty() {
+      fields.push(("weeks", weeks_json(self.weeks)))
+    }
+  }
+
+  json_object(fields, depth=0)
 }
 
 ///|
@@ -82,7 +115,66 @@ pub fn parse_previous_metrics(
     Some(_) => fail("previous metrics patterns must be an object")
   }
 
-  Some({ date, patterns, })
+  Some({
+    date,
+    patterns,
+    period: previous_period(obj.get("period")),
+    candidates: previous_candidates(obj.get("candidates"), date~),
+  })
+}
+
+///|
+/// Anything unreadable is treated as unknown, which is never compared.
+fn previous_period(source : Json?) -> Period? {
+  guard source is Some(Object(p)) else { return None }
+  guard p.get("basis") is Some(String(basis)) &&
+    p.get("week_start") is Some(String(week_start)) &&
+    p.get("days") is Some(Number(days, ..)) else {
+    return None
+  }
+
+  let until = match p.get("until") {
+    Some(String(until)) => until
+    _ => ""
+  }
+
+  Some({ days: days.to_int64(), until, basis, week_start, })
+}
+
+///|
+fn previous_candidates(
+  source : Json?,
+  date~ : String,
+) -> Map[String, CandidateCount] {
+  let candidates : Map[String, CandidateCount] = Map([])
+  guard source is Some(Object(entries)) else { return candidates }
+
+  for name, entry in entries {
+    guard entry is Object(counts) &&
+      counts.get("messages") is Some(Number(messages, ..)) &&
+      counts.get("sessions") is Some(Number(sessions, ..)) else {
+      continue
+    }
+
+    let outside = match counts.get("outside_patterns") {
+      Some(Number(n, ..)) => n.to_int()
+      _ => 0
+    }
+    let first_seen = match counts.get("first_seen") {
+      Some(String(d)) => d
+      _ => date
+    }
+    candidates[name] = {
+      name,
+      messages: messages.to_int(),
+      sessions: sessions.to_int(),
+      outside_patterns: outside,
+      first_seen,
+      seen_before: true,
+    }
+  }
+
+  candidates
 }
 
 ///|

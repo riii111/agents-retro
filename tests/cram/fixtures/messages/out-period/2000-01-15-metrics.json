@@ -1,0 +1,28 @@
+{
+ "since": "2000-01-08T00:00:00+00:00",
+ "messages": 3,
+ "sessions": 2,
+ "delegated": 0,
+ "by_role": {},
+ "unmatched": 0,
+ "patterns": {
+  "review": {
+   "messages": 1,
+   "sessions": 1
+  }
+ },
+ "period": {
+  "basis": "UTC",
+  "week_start": "Monday",
+  "days": 18000,
+  "until": "2000-01-15T00:00:00+00:00"
+ },
+ "candidates": {
+  "weather": {
+   "messages": 0,
+   "sessions": 0,
+   "outside_patterns": 0,
+   "first_seen": "2000-01-01"
+  }
+ }
+}

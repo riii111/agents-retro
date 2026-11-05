@@ -6,11 +6,15 @@ import {
 }
 
 // Values
+pub fn app_breakdown(Array[Message], Array[PatternHits]) -> Array[AppCount]
+
 pub fn claude_message(StringView, project~ : String, session~ : String) -> RawMessage?
 
 pub fn collect(Array[RawMessage], since~ : String) -> (Array[Message], Int32)
 
 pub fn count_by_role(Array[Message]) -> Array[(String, Int32)]
+
+pub fn count_candidates(Array[PatternHits], Array[PatternHits], PreviousMetrics?, today~ : String) -> Array[CandidateCount]
 
 pub fn count_patterns(Array[PatternHits]) -> Array[PatternCount]
 
@@ -42,9 +46,20 @@ pub fn unmatched_tsv_line(Message) -> String
 
 pub fn utc_isoformat(Int64) -> String
 
+pub fn weekly_breakdown(Array[Message], Array[PatternHits], since_ms~ : Int64, until_ms~ : Int64) -> Array[Week]
+
 // Errors
 
 // Types and methods
+pub(all) struct AppCount {
+  app : String
+  messages : Int32
+  sessions : Int32
+  patterns : Array[PatternCount]
+}
+
+type CandidateCount
+
 pub struct CodexSession {
   session : String
   mut source : String?
@@ -63,6 +78,10 @@ pub(all) struct Metrics {
   by_role : Array[(String, Int32)]
   unmatched : Int32
   patterns : Array[PatternCount]
+  period : Period?
+  apps : Array[AppCount]
+  weeks : Array[Week]
+  candidates : Array[CandidateCount]
 }
 pub fn Metrics::to_json(Self) -> String
 
@@ -70,9 +89,27 @@ type PatternCount
 
 type PatternHits
 
+pub(all) struct Period {
+  days : Int64
+  until : String
+  basis : String
+  week_start : String
+}
+pub fn Period::utc(days~ : Int64, until_ms~ : Int64) -> Self
+
 type PreviousMetrics
 
 type RawMessage
+
+pub(all) struct Week {
+  start : String
+  end : String
+  partial : Bool
+  covers_from : String
+  covers_until : String
+  sessions : Int32
+  apps : Array[AppCount]
+}
 
 // Type aliases
 

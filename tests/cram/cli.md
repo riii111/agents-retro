@@ -6,7 +6,7 @@ The executable built from `cmd/main` is `main.exe`.
 
 ```mooncram
 $ main.exe --version
-0.1.0
+0.1.1
 ```
 
 ## Arguments reach the report

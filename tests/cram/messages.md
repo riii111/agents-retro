@@ -15,6 +15,7 @@ $ export HOME="$PWD/home"
 ## 標準出力
 
 前回の集計は、同じ日の `metrics.json` を除いて日付が最も新しいものを使う。
+期間を記録していない前回の集計とは、件数を比べない。
 
 ```mooncram
 $ main.exe messages --days 18000 --patterns patterns.json --out-dir out
@@ -24,8 +25,8 @@ Owner messages: 8 in 5 sessions (agent-to-agent messages excluded: 1)
   codex/user: 1
   codex/worker: 1
 
-Patterns (messages / sessions)  vs 2000-01-08
-  review: 2 / 2  (was 1 / 1)
+Patterns (messages / sessions)  vs 2000-01-08: not compared (that run covered a different or unknown period)
+  review: 2 / 2
   fix: 3 / 3
 
 Unmatched by any pattern: 3
@@ -109,6 +110,12 @@ $ cat "out/$today-metrics.json"
    "messages": 3,
    "sessions": 3
   }
+ },
+ "period": {
+  "basis": "UTC",
+  "week_start": "Monday",
+  "days": 18000,
+  "until": "\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?\+00:00" (re)
  }
 } (no-eol)
 ```
@@ -119,7 +126,7 @@ $ cat "out/$today-metrics.json"
 
 ```mooncram
 $ main.exe messages --days 18000 --patterns patterns.json --out-dir out | grep ' vs '
-Patterns (messages / sessions)  vs 2000-01-08
+Patterns (messages / sessions)  vs 2000-01-08: not compared (that run covered a different or unknown period)
 ```
 
 ## 該当なし
@@ -158,4 +165,112 @@ empty
 $ echo '[]' > bad.json
 > main.exe messages --patterns bad.json --out-dir bad-out 2>/dev/null
 [1]
+```
+
+## 週別・アプリ別と候補
+
+`--by-week` は期間と時刻の基準を表示し、UTC の月曜 00:00 で区切った週ごとにアプリ別の件数を出す。
+`--candidates` の候補は正式パターンと別に数え、前回の集計に同じ候補があれば新規として扱わない。
+前回の集計と期間が同じときだけ、件数を比べる。
+空の週は `grep` で除く。
+
+```mooncram
+$ main.exe messages --days 18000 --by-week --patterns patterns.json --candidates candidates.json --out-dir out-period | grep -v ' 0 sessions'
+Owner messages: 8 in 5 sessions (agent-to-agent messages excluded: 1)
+  claude/main: 5
+  claude/worker: 1
+  codex/user: 1
+  codex/worker: 1
+Period: last 18000 days until \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?\+00:00 \(UTC; weeks start Monday 00:00\) (re)
+
+Patterns (messages / sessions, 5 sessions in period)  vs 2000-01-15
+  review: 2 / 2  (was 1 / 1)
+  fix: 3 / 3
+
+Candidates (messages / sessions; not part of the patterns)
+  weather: 1 / 1  (tracked since 2000-01-01, was 0 / 0; 1 messages outside the patterns)
+  typed: 1 / 1  (new; 0 messages outside the patterns)
+  absent: 0 / 0  (new; 0 messages outside the patterns)
+
+Unmatched by any pattern: 3
+
+By app, whole period (messages / sessions per pattern)
+  claude: 6 messages in 3 sessions
+    review: 1 / 1
+    fix: 3 / 3
+  codex: 2 messages in 2 sessions
+    review: 1 / 1
+
+Weekly by app (messages / sessions per pattern)
+2026-10-19 to 2026-10-25: 5 sessions
+  claude: 6 messages in 3 sessions
+    review: 1 / 1
+    fix: 3 / 3
+  codex: 2 messages in 2 sessions
+    review: 1 / 1
+
+Examples: out-period/????-??-??-examples.tsv (glob)
+Unmatched: out-period/????-??-??-unmatched-01.tsv (glob)
+Messages (full text, line number = id): out-period/????-??-??-messages.tsv (glob)
+```
+
+候補は正式パターンの件数と未一致の数を変えない。
+
+```mooncram
+$ grep unmatched "out-period/$today-metrics.json"
+ "unmatched": 3,
+```
+
+期間と候補は `metrics.json` に残り、次回の比較に使う。
+
+```mooncram
+$ grep -A5 '"period"' "out-period/$today-metrics.json"
+ "period": {
+  "basis": "UTC",
+  "week_start": "Monday",
+  "days": 18000,
+  "until": "\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?\+00:00" (re)
+ },
+```
+
+```mooncram
+$ grep -A5 '"weather"' "out-period/$today-metrics.json"
+  "weather": {
+   "messages": 1,
+   "sessions": 1,
+   "outside_patterns": 1,
+   "first_seen": "2000-01-01"
+  },
+```
+
+期間を記録していない前回の集計とは、件数を比べない。
+
+```mooncram
+$ mkdir out-legacy && cp out/2000-01-08-metrics.json out-legacy/
+> main.exe messages --days 18000 --by-week --patterns patterns.json --out-dir out-legacy | grep -e ' vs ' -e 'was '
+Patterns (messages / sessions, 5 sessions in period)  vs 2000-01-08: not compared (that run covered a different or unknown period)
+```
+
+期間が違う前回の集計とも比べない。
+
+```mooncram
+$ main.exe messages --days 0 --by-week --patterns patterns.json --out-dir out-period | grep -e ' vs ' -e 'was '
+Patterns (messages / sessions, 0 sessions in period)  vs 2000-01-15: not compared (that run covered a different or unknown period)
+```
+
+## 通常の実行での比較
+
+`--by-week` がなくても、同じ日数の前回とだけ件数を比べる。
+
+```mooncram
+$ mkdir out-plain && cp out-period/2000-01-15-metrics.json out-plain/
+> main.exe messages --days 18000 --patterns patterns.json --out-dir out-plain | grep -e ' vs ' -e 'was '
+Patterns (messages / sessions)  vs 2000-01-15
+  review: 2 / 2  (was 1 / 1)
+```
+
+```mooncram
+$ rm out-plain/$today-*
+> main.exe messages --days 7 --patterns patterns.json --out-dir out-plain | grep -e ' vs ' -e 'was '
+Patterns (messages / sessions)  vs 2000-01-15: not compared (that run covered a different or unknown period)
 ```

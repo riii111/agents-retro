@@ -22,3 +22,21 @@ test "message report requires patterns and out-dir" {
     assert_true(rejected)
   }
 }
+
+///|
+test "message report options for weekly output and candidates are opt-in" {
+  let plain = command().parse(argv=[
+    "--patterns", "patterns.json", "--out-dir", "out",
+  ])
+
+  assert_true(plain.flags.get("by-week") != Some(true))
+  assert_true(plain.values.get("candidates") is None)
+
+  let matches = command().parse(argv=[
+    "--patterns", "patterns.json", "--out-dir", "out", "--by-week", "--candidates",
+    "candidates.json",
+  ])
+
+  assert_eq(matches.flags.get("by-week"), Some(true))
+  assert_eq(matches.values.get("candidates"), Some(["candidates.json"]))
+}

@@ -92,7 +92,7 @@ test "complete permission report keeps causes sessions sandbox evidence and orde
     #|    1  ~/.cache/tool/a
     #|
     #|## Hosts the sandbox refused
-    #|    1  example.com
+    #|    1  example.com  (1 sessions)
 
   assert_eq(report.format(days=7L, records=2, limit=15), expected + "\n\n")
 }
@@ -206,4 +206,68 @@ test "events with missing and null tool names use unknown" {
   assert_true(output.contains("    2  tool: unknown  (2 sessions)\n"))
   assert_true(output.contains("    1  tool: Read  (1 sessions)\n"))
   assert_false(output.contains("tool: None"))
+}
+
+///|
+fn tool_result_line(id : String, output : String) -> String {
+  let call =
+    #|{"message":{"content":[{"type":"tool_use","id":"ID","name":"Bash","input":{"command":"curl x"}},{"type":"tool_result","tool_use_id":"ID","content":"OUTPUT"}]}}
+  call.replace_all(old="ID", new=id).replace_all(old="OUTPUT", new=output)
+}
+
+///|
+test "hosts count violations and distinct sessions" {
+  let report = @permissions.Report::new(home="/home/me")
+  let deny = "deny network-outbound example.com:443"
+
+  let first = report.start_session(id="one")
+  first.read_line(tool_result_line("a", deny))
+  first.read_line(tool_result_line("b", deny))
+  first.read_line(tool_result_line("c", "deny network-outbound other.test:80"))
+
+  // A subagent log of the same conversation is the same session.
+  report.start_session(id="one").read_line(tool_result_line("d", deny))
+  report.start_session(id="two").read_line(tool_result_line("e", deny))
+  report
+  .start_session()
+  .read_line(tool_result_line("f", "deny network-outbound other.test:80"))
+
+  let output = report.format(days=7L, records=4, limit=15)
+
+  assert_true(
+    output.contains(
+      "## Hosts the sandbox refused\n    4  example.com  (2 sessions)\n    2  other.test  (2 sessions)\n",
+    ),
+  )
+}
+
+///|
+test "refused paths drop the backslash of an escaped quote and keep escaped spaces" {
+  let report = @permissions.Report::new(home="/home/me")
+  let session = report.start_session()
+
+  session.read_line(
+    tool_result_line(
+      "a", "touch: \\\\\\\"/home/me/.cache/app\\\\\\\": Operation not permitted",
+    ),
+  )
+  session.read_line(
+    tool_result_line(
+      "b", "open /home/me/Library/Application\\\\ Support/app/db: Read-only file system",
+    ),
+  )
+  session.read_line(
+    tool_result_line("c", "open /var/data/x\\\\n: Operation not permitted"),
+  )
+
+  session.read_line(
+    tool_result_line("d", "touch: '/var/lib/name\\\\': Operation not permitted"),
+  )
+
+  let output = report.format(days=7L, records=1, limit=15)
+
+  assert_true(output.contains("    1  /var/lib/name\\\n"))
+  assert_true(output.contains("    1  ~/.cache/app\n"))
+  assert_true(output.contains("    1  ~/Library/Application Support/app\n"))
+  assert_true(output.contains("    1  /var/data/x\n"))
 }

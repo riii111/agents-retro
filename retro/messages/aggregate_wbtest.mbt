@@ -81,3 +81,53 @@ test "count_by_role sorts keys lexicographically" {
     ("codex/user", 1),
   ])
 }
+
+///|
+test "count_candidates counts apart from the patterns and keeps the first sighting" {
+  let messages = [
+    msg(1, "CRきた", session="a"),
+    msg(2, "コンフリクト 直して", session="a"),
+    msg(3, "続けて 直して", session="b"),
+    msg(4, "続けて 直して", session="c"),
+  ]
+  let formal = review_hits(messages)
+  let candidates = match_patterns(
+    messages,
+    parse_patterns(
+      "{\"fix\": \"直して\", \"go\": \"続けて\", \"none\": \"zzz\"}",
+    ),
+  )
+  let previous : PreviousMetrics = {
+    date: "2026-10-13",
+    patterns: {},
+    period: None,
+    candidates: {
+      "go": {
+        name: "go",
+        messages: 1,
+        sessions: 1,
+        outside_patterns: 1,
+        first_seen: "2026-10-06",
+        seen_before: true,
+      },
+    },
+  }
+
+  let counts = count_candidates(
+    candidates,
+    formal,
+    Some(previous),
+    today="2026-10-20",
+  )
+
+  assert_eq(
+    counts.map(c => (c.name, c.messages, c.sessions, c.outside_patterns)),
+    [("fix", 3, 3, 2), ("go", 2, 2, 2), ("none", 0, 0, 0)],
+  )
+  assert_eq(counts.map(c => (c.first_seen, c.seen_before)), [
+    ("2026-10-20", false),
+    ("2026-10-06", true),
+    ("2026-10-20", false),
+  ])
+  assert_eq(unmatched_chunks(messages, formal)[0].length(), 2)
+}

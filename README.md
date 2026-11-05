@@ -27,7 +27,14 @@ agents-retro messages --days 7 --patterns patterns.json --out-dir ~/retro
 
 Each pattern maps a category to a regular expression. Use `[[:digit:]]`, `[[:space:]]`, and `[[:word:]]` instead of `\d`, `\s`, and `\w`, and write `-` inside brackets as `\-`.
 
-The report counts matching messages and sessions and compares them with the previous run. Dated messages, examples, unmatched messages, and metrics are saved in the output directory. Agent-to-agent messages and app-inserted text are excluded.
+The report counts matching messages and sessions and compares them with the previous run. Dated messages, examples, unmatched messages, and metrics are saved in the output directory. Agent-to-agent messages and app-inserted text, including expanded skill bodies, are excluded.
+
+Two options add detail:
+
+- `--by-week` shows the period and the counts per app and per week. Weeks are UTC and start on Monday.
+- `--candidates candidates.json` counts trial patterns, in the same format as `patterns.json`, apart from the real ones.
+
+The comparison with the previous run is shown only when that run covered the same number of days, with or without these options. Times in the saved files are UTC.
 
 ## Permission interruptions
 

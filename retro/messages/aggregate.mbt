@@ -6,6 +6,17 @@ struct PatternCount {
 }
 
 ///|
+/// A pattern under trial. It is counted apart from the formal patterns, so it never changes their counts or the unmatched messages.
+struct CandidateCount {
+  name : String
+  messages : Int32
+  sessions : Int32
+  outside_patterns : Int32
+  first_seen : String
+  seen_before : Bool
+}
+
+///|
 let examples_per_pattern = 3
 
 ///|
@@ -17,6 +28,34 @@ pub fn count_patterns(hits : Array[PatternHits]) -> Array[PatternCount] {
     name: h.name,
     messages: h.messages.length(),
     sessions: session_count(h.messages),
+  })
+}
+
+///|
+/// `outside_patterns` counts the messages no formal pattern matched, which is what adopting the candidate would newly cover.
+/// `first_seen` carries over from the previous run so a candidate tracked for weeks is not presented as new.
+pub fn count_candidates(
+  candidates : Array[PatternHits],
+  formal : Array[PatternHits],
+  previous : PreviousMetrics?,
+  today~ : String,
+) -> Array[CandidateCount] {
+  let matched = matched_ids(formal)
+  candidates.map(h => {
+    let before = previous.bind(p => p.candidates.get(h.name))
+    let first_seen = match before {
+      Some(before) => before.first_seen
+      None => today
+    }
+
+    {
+      name: h.name,
+      messages: h.messages.length(),
+      sessions: session_count(h.messages),
+      outside_patterns: h.messages.filter(m => !matched.contains(m.id)).length(),
+      first_seen,
+      seen_before: before is Some(_),
+    }
   })
 }
 
@@ -47,13 +86,7 @@ pub fn unmatched_chunks(
   messages : Array[Message],
   hits : Array[PatternHits],
 ) -> Array[Array[Message]] {
-  let matched : Set[Int32] = Set([])
-  for h in hits {
-    for m in h.messages {
-      matched.add(m.id)
-    }
-  }
-
+  let matched = matched_ids(hits)
   let unmatched = messages.filter(m => !matched.contains(m.id))
   let chunks = []
   for start = 0
@@ -68,6 +101,18 @@ pub fn unmatched_chunks(
   }
 
   chunks
+}
+
+///|
+fn matched_ids(hits : Array[PatternHits]) -> Set[Int32] {
+  let matched : Set[Int32] = Set([])
+  for h in hits {
+    for m in h.messages {
+      matched.add(m.id)
+    }
+  }
+
+  matched
 }
 
 ///|

@@ -69,3 +69,27 @@ test "in_period excludes records without a usable timestamp" {
   assert_false(@clock.in_period("", since~))
   assert_false(@clock.in_period("2026-10-27", since~))
 }
+
+///|
+test "weeks start on Monday and dates round-trip through day counts" {
+  assert_eq(@clock.days_from_date("1970-01-01T00:00:00Z"), Some(0L))
+  assert_eq(@clock.days_from_date("2024-02-29"), Some(19782L))
+  assert_eq(@clock.days_from_date("2026-13-01"), None)
+  assert_eq(@clock.days_from_date("2026/10/01"), None)
+  assert_eq(@clock.days_from_date("short"), None)
+
+  for
+    case in [
+      ("2026-10-19", "2026-10-19"),
+      ("2026-10-20", "2026-10-19"),
+      ("2026-10-25", "2026-10-19"),
+      ("2026-10-26", "2026-10-26"),
+      ("1970-01-01", "1969-12-29"),
+      ("2024-03-04", "2024-03-04"),
+    ] {
+    let days = @clock.days_from_date(case.0).unwrap()
+
+    inspect(@clock.date_from_days(@clock.week_start_days(days)), content=case.1)
+    inspect(@clock.date_from_days(days), content=case.0)
+  }
+}

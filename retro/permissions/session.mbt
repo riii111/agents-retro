@@ -7,6 +7,7 @@ struct Call {
 ///|
 pub struct Session {
   priv report : Report
+  priv id : String
   priv calls : Map[String, Call]
 }
 
@@ -17,7 +18,7 @@ let write_errors : @string.Regex = regex(
 
 ///|
 let quoted_path : @string.Regex = regex(
-  "'(/[^'\n]+)'|\"(/[^\"\n]+)\"|(?:on|in|create|open) (/[^\{whitespace_chars}:'\")]+)",
+  "'(/[^'\n]+)'|\"(/[^\"\n]+)\"|(?:on|in|create|open) (/(?:\\\\[\{whitespace_chars}]|[^\{whitespace_chars}:'\")\\\\])+)",
 )
 
 ///|
@@ -33,8 +34,16 @@ pub fn is_candidate_line(line : BytesView) -> Bool {
 }
 
 ///|
-pub fn Report::start_session(self : Report) -> Session {
-  { report: self, calls: Map([]), }
+/// `id` names the conversation this log belongs to, so a conversation read from several files counts once per host.
+/// Without it, each call stands for a separate conversation.
+pub fn Report::start_session(self : Report, id? : String) -> Session {
+  self.started += 1
+  let id = match id {
+    Some(id) => id
+    None => "#\{self.started}"
+  }
+
+  { report: self, id, calls: Map([]), }
 }
 
 ///|
@@ -74,7 +83,12 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
       let output = @records.content_text(item.get("content"))
       for m in network.find(output) {
         if m.group(1) is Some(host) {
-          report.hosts.add(host.to_owned())
+          let host = host.to_owned()
+          report.hosts.add(host)
+          if !report.host_sessions.contains(host) {
+            report.host_sessions[host] = Set([])
+          }
+          report.host_sessions[host].add(self.id)
         }
       }
 
@@ -91,7 +105,7 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
         for m in quoted_path.find(line) {
           for i in 1..<4 {
             if m.group(i) is Some(path) {
-              report.writes.add(path_prefix(path.to_owned(), report.home))
+              report.writes.add(path_prefix(clean_path(path), report.home))
               break
             }
           }
@@ -99,6 +113,16 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
       }
     }
   }
+}
+
+///|
+/// A path quoted inside an escaped string ends in the backslash of `\"`, and a shell escapes a space as `\ `.
+fn clean_path(path : StringView) -> String {
+  path
+  .to_owned()
+  .replace_all(old="\\ ", new=" ")
+  .trim_end(chars="\\")
+  .to_owned()
 }
 
 ///|

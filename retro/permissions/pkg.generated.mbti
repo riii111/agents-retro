@@ -19,7 +19,7 @@ pub struct Report {
 pub fn Report::format(Self, days~ : Int64, records~ : Int32, limit~ : Int32) -> String
 pub fn Report::new(home~ : String) -> Self
 pub fn Report::read_event(Self, StringView, since_ms~ : Int64) -> Unit
-pub fn Report::start_session(Self) -> Session
+pub fn Report::start_session(Self, id? : String) -> Session
 
 pub struct Session {
   // private fields

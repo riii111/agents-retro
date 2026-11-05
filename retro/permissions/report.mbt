@@ -13,6 +13,8 @@ pub struct Report {
   priv failed : Counter
   priv writes : Counter
   priv hosts : Counter
+  priv host_sessions : Map[String, Set[String]]
+  priv mut started : Int32
 }
 
 ///|
@@ -34,6 +36,8 @@ pub fn Report::new(home~ : String) -> Report {
     failed: Counter::new(),
     writes: Counter::new(),
     hosts: Counter::new(),
+    host_sessions: Map([]),
+    started: 0,
   }
 }
 

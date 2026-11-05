@@ -17,7 +17,9 @@ pub fn Report::format(
   self.reruns.section(out, "Commands rerun outside the sandbox", limit)
   self.failed.section(out, "Sandboxed commands that failed to write", limit)
   self.writes.section(out, "Paths the sandbox refused to write", limit)
-  self.hosts.section(out, "Hosts the sandbox refused", limit)
+  self.hosts.section(out, "Hosts the sandbox refused", limit, format_key=host => {
+    "\{host}  (\{self.host_sessions[host].length()} sessions)"
+  })
 
   out.to_string()
 }

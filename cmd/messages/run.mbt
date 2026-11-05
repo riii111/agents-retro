@@ -52,11 +52,8 @@ pub async fn run(
     by_role: @analysis.count_by_role(messages),
     unmatched: chunks.fold(init=0, (n, chunk) => n + chunk.length()),
     patterns: @analysis.count_patterns(hits),
-    period: if by_week || candidates_path is Some(_) {
-      Some(@analysis.Period::utc(days~, until_ms=now_ms))
-    } else {
-      None
-    },
+    period: Some(@analysis.Period::utc(days~, until_ms=now_ms)),
+    detailed: by_week || candidates_path is Some(_),
     apps: if by_week {
       @analysis.app_breakdown(messages, hits)
     } else {

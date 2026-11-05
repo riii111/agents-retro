@@ -15,6 +15,7 @@ $ export HOME="$PWD/home"
 ## 標準出力
 
 前回の集計は、同じ日の `metrics.json` を除いて日付が最も新しいものを使う。
+期間を記録していない前回の集計とは、件数を比べない。
 
 ```mooncram
 $ main.exe messages --days 18000 --patterns patterns.json --out-dir out
@@ -24,8 +25,8 @@ Owner messages: 8 in 5 sessions (agent-to-agent messages excluded: 1)
   codex/user: 1
   codex/worker: 1
 
-Patterns (messages / sessions)  vs 2000-01-08
-  review: 2 / 2  (was 1 / 1)
+Patterns (messages / sessions)  vs 2000-01-08: not compared (that run covered a different or unknown period)
+  review: 2 / 2
   fix: 3 / 3
 
 Unmatched by any pattern: 3
@@ -109,6 +110,12 @@ $ cat "out/$today-metrics.json"
    "messages": 3,
    "sessions": 3
   }
+ },
+ "period": {
+  "basis": "UTC",
+  "week_start": "Monday",
+  "days": 18000,
+  "until": "\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?\+00:00" (re)
  }
 } (no-eol)
 ```
@@ -119,7 +126,7 @@ $ cat "out/$today-metrics.json"
 
 ```mooncram
 $ main.exe messages --days 18000 --patterns patterns.json --out-dir out | grep ' vs '
-Patterns (messages / sessions)  vs 2000-01-08
+Patterns (messages / sessions)  vs 2000-01-08: not compared (that run covered a different or unknown period)
 ```
 
 ## 該当なし
@@ -249,4 +256,21 @@ Patterns (messages / sessions, 5 sessions in period)  vs 2000-01-08: not compare
 ```mooncram
 $ main.exe messages --days 0 --by-week --patterns patterns.json --out-dir out-period | grep -e ' vs ' -e 'was '
 Patterns (messages / sessions, 0 sessions in period)  vs 2000-01-15: not compared (that run covered a different or unknown period)
+```
+
+## 通常の実行での比較
+
+`--by-week` がなくても、同じ日数の前回とだけ件数を比べる。
+
+```mooncram
+$ mkdir out-plain && cp out-period/2000-01-15-metrics.json out-plain/
+> main.exe messages --days 18000 --patterns patterns.json --out-dir out-plain | grep -e ' vs ' -e 'was '
+Patterns (messages / sessions)  vs 2000-01-15
+  review: 2 / 2  (was 1 / 1)
+```
+
+```mooncram
+$ rm out-plain/$today-*
+> main.exe messages --days 7 --patterns patterns.json --out-dir out-plain | grep -e ' vs ' -e 'was '
+Patterns (messages / sessions)  vs 2000-01-15: not compared (that run covered a different or unknown period)
 ```

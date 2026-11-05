@@ -260,8 +260,13 @@ test "refused paths drop the backslash of an escaped quote and keep escaped spac
     tool_result_line("c", "open /var/data/x\\\\n: Operation not permitted"),
   )
 
+  session.read_line(
+    tool_result_line("d", "touch: '/var/lib/name\\\\': Operation not permitted"),
+  )
+
   let output = report.format(days=7L, records=1, limit=15)
 
+  assert_true(output.contains("    1  /var/lib/name\\\n"))
   assert_true(output.contains("    1  ~/.cache/app\n"))
   assert_true(output.contains("    1  ~/Library/Application Support/app\n"))
   assert_true(output.contains("    1  /var/data/x\n"))

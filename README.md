@@ -34,7 +34,7 @@ Two options add detail:
 - `--by-week` shows the period and the counts per app and per week. Weeks are UTC and start on Monday.
 - `--candidates candidates.json` counts trial patterns, in the same format as `patterns.json`, apart from the real ones.
 
-With either option, the comparison with the previous run is shown only when that run covered the same number of days.
+The comparison with the previous run is shown only when that run covered the same number of days, with or without these options. Times in the saved files are UTC.
 
 ## Permission interruptions
 

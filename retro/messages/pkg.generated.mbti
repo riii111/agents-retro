@@ -79,6 +79,7 @@ pub(all) struct Metrics {
   unmatched : Int32
   patterns : Array[PatternCount]
   period : Period?
+  detailed : Bool
   apps : Array[AppCount]
   weeks : Array[Week]
   candidates : Array[CandidateCount]

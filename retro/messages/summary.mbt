@@ -24,15 +24,16 @@ pub fn format_summary(
     (_, Some(p)) => (previous, "  vs \{p.date}")
     _ => (None, "")
   }
-  if metrics.period is Some(p) {
+  if metrics.detailed && metrics.period is Some(p) {
     lines.push(
       "Period: last \{p.days} days until \{p.until} (\{p.basis}; weeks start \{p.week_start} 00:00)",
     )
   }
 
-  let total = match metrics.period {
-    Some(_) => ", \{metrics.sessions} sessions in period"
-    None => ""
+  let total = if metrics.detailed {
+    ", \{metrics.sessions} sessions in period"
+  } else {
+    ""
   }
   lines.push("\nPatterns (messages / sessions\{total})\{note}")
   for c in metrics.patterns {

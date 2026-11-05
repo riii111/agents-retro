@@ -9,6 +9,8 @@ pub(all) struct Metrics {
   patterns : Array[PatternCount]
   /// Set only by the options that add period-aware output; plain runs keep the original layout.
   period : Period?
+  /// Whether the period-aware sections are printed; the period itself is always recorded for comparisons.
+  detailed : Bool
   apps : Array[AppCount]
   weeks : Array[Week]
   candidates : Array[CandidateCount]

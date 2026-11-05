@@ -8,6 +8,7 @@ fn sample_metrics() -> Metrics {
     by_role: [("claude/main", 2), ("codex/user", 1)],
     unmatched: 1,
     period: None,
+    detailed: false,
     apps: [],
     weeks: [],
     candidates: [],

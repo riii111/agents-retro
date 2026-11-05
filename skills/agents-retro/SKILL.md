@@ -26,14 +26,14 @@ The regex syntax differs from Python and PCRE: `\d`, `\s`, and `\w` are not avai
    ```
    `--by-week` adds the counts per app and per week; add `--candidates <candidates.json>` to count candidates apart from the patterns.
    It prints counts per pattern with the change since the previous run and writes these files, named by the local date:
-   - `<date>-messages.tsv`: every owner message, one per line; columns are id, time, app, role, session, working directory, and text, and the id equals the line number.
+   - `<date>-messages.tsv`: every owner message, one per line; columns are id, time (UTC), app, role, session, working directory, and text, and the id equals the line number.
    - `<date>-examples.tsv`: up to three messages per pattern, each from a different session.
    - `<date>-unmatched-<nn>.tsv`: messages that match no pattern, 100 per file.
    - `<date>-metrics.json`: the counts used for the next comparison.
 
    With either option, the output also states the period and its clock: UTC, weeks starting Monday 00:00, and the total sessions in the period.
    Counts per app cover the whole period; weekly lines are grouped by app, and a week cut by the period is marked partial.
-   The change since the previous run appears only when that run covered the same number of days with the same clock; otherwise the output says it was not compared, and you must not compare by hand.
+   The change since the previous run appears, with or without those options, only when that run covered the same number of days with the same clock; otherwise the output says it was not compared, and you must not compare by hand.
    A candidate shows `new` the first time and `tracked since <date>` afterwards, with the number of its messages outside the patterns; do not propose a tracked candidate as new.
 
    Role `worker` marks threads that an agent started, such as a delegated task.
@@ -62,6 +62,8 @@ Then a table with one row per proposal, in this order of columns:
 
 | Repeated | Proposal | Messages | Sessions |
 | --- | --- | --- | --- |
+
+In a Japanese report, name the columns 繰り返していたこと｜提案｜発言数｜該当セッション数. Translate them for other languages.
 
 - Every row uses that same period, and every number is one the command printed; do not estimate or recount by hand.
 - Add a proposal only when the evidence supports it; do not fill the table to reach a number of rows.

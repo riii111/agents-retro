@@ -8,6 +8,7 @@ fn summary_metrics() -> Metrics {
     by_role: [("claude/main", 2), ("codex/user", 1)],
     unmatched: 1,
     period: None,
+    detailed: false,
     apps: [],
     weeks: [],
     candidates: [],
@@ -83,6 +84,7 @@ fn period_summary(
     {
       ..summary_metrics(),
       period: Some(Period::utc(days=7L, until_ms=1_792_551_600_000L)),
+      detailed: true,
       candidates,
       weeks,
       apps,
@@ -231,4 +233,35 @@ test "format_summary lists candidates apart from patterns and weeks by app" {
   assert_true(
     unaligned.contains("  old: 4 / 3  (tracked since 2026-10-07; 1 messages"),
   )
+}
+
+///|
+test "format_summary without detail still refuses an unaligned comparison" {
+  let now = Period::utc(days=7L, until_ms=1_792_551_600_000L)
+  let metrics = { ..summary_metrics(), period: Some(now), }
+  fn render(previous : PreviousMetrics) -> String {
+    format_summary(
+      metrics,
+      Some(previous),
+      examples_path="e",
+      unmatched_paths=[],
+      messages_path="m",
+    )
+  }
+
+  let same = render(previous_with(Some({ ..now, until: "x", })))
+  assert_true(same.contains("Patterns (messages / sessions)  vs 2026-10-14\n"))
+  assert_true(same.contains("(was 5 / 3)"))
+  assert_false(same.contains("Period:"))
+
+  for
+    previous in [
+      previous_with(Some({ ..now, days: 21L, })),
+      previous_with(None),
+    ] {
+    let summary = render(previous)
+
+    assert_true(summary.contains("not compared"))
+    assert_false(summary.contains("was 5 / 3"))
+  }
 }

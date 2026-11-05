@@ -18,7 +18,7 @@ let write_errors : @string.Regex = regex(
 
 ///|
 let quoted_path : @string.Regex = regex(
-  "'(/[^'\n]+)'|\"(/[^\"\n]+)\"|(?:on|in|create|open) (/(?:\\\\[\{whitespace_chars}]|[^\{whitespace_chars}:'\")\\\\])+)",
+  "'(/[^'\n]+)'|\"(/[^\"\n]+)\"|(?:on|in|create|open) (/(?:\\\\[\{whitespace_chars}]|[^\{whitespace_chars}:'\")\\\\])+)|\\\\\"(/[^\"\n]+?)\\\\\"",
 )
 
 ///|
@@ -103,9 +103,18 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
         }
 
         for m in quoted_path.find(line) {
-          for i in 1..<4 {
+          for i in 1..<5 {
             if m.group(i) is Some(path) {
-              report.writes.add(path_prefix(clean_path(path), report.home))
+              report.writes.add(
+                path_prefix(
+                  if i == 3 {
+                    unescape_spaces(path)
+                  } else {
+                    path.to_owned()
+                  },
+                  report.home,
+                ),
+              )
               break
             }
           }
@@ -116,14 +125,12 @@ pub fn Session::read_line(self : Session, line : StringView) -> Unit {
 }
 
 ///|
-/// A path quoted inside an escaped string ends in the backslash of `\"`, and a shell escapes a space as `\ `.
-fn clean_path(path : StringView) -> String {
-  path
-  .to_owned()
-  .replace_all(old="\\ ", new=" ")
-  .trim_end(chars="\\")
-  .to_owned()
+/// A shell escapes a space in a path as `\ `. Quoted paths keep every backslash, since it may be part of the name.
+fn unescape_spaces(path : StringView) -> String {
+  path.to_owned().replace_all(old="\\ ", new=" ")
 }
+
+///|
 
 ///|
 fn path_prefix(path : String, home : String) -> String {

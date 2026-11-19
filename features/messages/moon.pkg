@@ -1,0 +1,12 @@
+import {
+  "riii111/agents-retro/features/messages/analysis",
+  "riii111/agents-retro/logs/jsonl" @logfiles,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
+  "moonbitlang/async/process",
+}
+
+supported_targets = "+native"

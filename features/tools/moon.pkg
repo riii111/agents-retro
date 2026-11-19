@@ -1,0 +1,15 @@
+import {
+  "riii111/agents-retro/features/tools/analysis",
+  "riii111/agents-retro/logs/jsonl" @logfiles,
+  "riii111/agents-retro/shared/clock",
+  "riii111/agents-retro/cli/options",
+  "moonbitlang/core/argparse",
+  "moonbitlang/async/stdio",
+}
+
+supported_targets = "+native"
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+} for "wbtest"

@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "riii111/agents-retro/features/messages"
+
+import {
+  "moonbitlang/core/argparse",
+}
+
+// Values
+pub fn command() -> @argparse.Command
+
+pub async fn run(@argparse.Matches, String, Int64) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

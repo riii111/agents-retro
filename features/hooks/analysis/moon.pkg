@@ -1,0 +1,12 @@
+import {
+  "riii111/agents-retro/shared/clock",
+  "riii111/agents-retro/shared/jsonreport",
+  "riii111/agents-retro/shared/records",
+  "riii111/agents-retro/shared/shell",
+  "riii111/agents-retro/shared/whitespace",
+}
+
+import {
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+} for "test"
